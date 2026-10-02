@@ -1,0 +1,274 @@
+# RB4011 capacity - G: EoIP encapsulation (bridge ether3 <-> EoIP over ether4)
+# Date 2026-10-01. Generator BENCH-NEW (RB4011, ROS 7.19.5) sends plain frames on ether3 and counts the
+# EoIP/GRE packets arriving on ether4 (traffic-gen finds its footer inside GRE; verified: the count held
+# with no EoIP on the generator). So this measures the DUT's ENCAP only. DUT BENCH-712 (ROS 7.20.7).
+# DUT: ether4 10.99.4.1/24, static ARP 10.99.4.2 -> generator ether4; eoip t-eoip 10.99.4.1->10.99.4.2
+# id 100, keepalive off, actual-mtu 1458, dont-fragment=no; bridge t-br ether3 (H) + t-eoip; static
+# bridge hosts. Bench management firewall present (output chain accepts out-interface!=ether1 first).
+# Flows: 1 (udp 5000) or 256 (udp src 1000-1255), inner frames f incl FCS; outer adds 42 B.
+#
+# Part 1: tg-sweep.rsc binary search (UNRELIABLE here - loss is not monotonic in rate, see part 2).
+  t sz=60 ask=1488095 sent=1359158 lost=3319333 ppm=271355 cpu=100/100 short=true
+  t sz=60 ask=744047 sent=743928 lost=1435 ppm=214 cpu=100/100 short=false
+  t sz=60 ask=1116071 sent=1115893 lost=1130454 ppm=112560 cpu=100/100 short=false
+  t sz=60 ask=930059 sent=930087 lost=11742 ppm=1402 cpu=100/100 short=false
+  t sz=60 ask=837053 sent=837388 lost=1965 ppm=260 cpu=100/100 short=false
+  t sz=60 ask=883556 sent=884030 lost=7084 ppm=890 cpu=100/100 short=false
+  t sz=60 ask=906807 sent=907292 lost=7592 ppm=929 cpu=100/100 short=false
+  t sz=60 ask=918433 sent=918970 lost=7511 ppm=908 cpu=100/100 short=false
+  t sz=60 ask=918433 sent=919095 lost=33603 ppm=609 cpu=100/100 short=false
+CAP G-eoip-encap-1flow f=64 pps=919095 line%=61 mbps=470 ok=true
+    ppm=609 ooo=0 lat=147.us/2.02ms jit=1.94ms cpu=100/100
+  t sz=124 ask=844594 sent=844299 lost=1680177 ppm=221114 cpu=100/100 short=false
+  t sz=124 ask=422297 sent=421878 lost=6050 ppm=1593 cpu=100/100 short=false
+  t sz=124 ask=211148 sent=211114 lost=4 ppm=2 cpu=98/60 short=false
+  t sz=124 ask=316722 sent=316706 lost=19 ppm=6 cpu=100/77 short=false
+  t sz=124 ask=369509 sent=369485 lost=5766 ppm=1733 cpu=100/79 short=false
+  t sz=124 ask=343115 sent=343116 lost=1058 ppm=342 cpu=100/77 short=false
+  t sz=124 ask=356312 sent=356320 lost=279 ppm=87 cpu=100/79 short=false
+  t sz=124 ask=362910 sent=362894 lost=3342 ppm=1023 cpu=100/79 short=false
+  t sz=124 ask=356312 sent=356368 lost=8182 ppm=382 cpu=100/81 short=false
+CAP G-eoip-encap-1flow f=128 pps=356368 line%=42 mbps=364 ok=true
+    ppm=382 ooo=0 lat=86.9us/7.28ms jit=7.25ms cpu=100/81
+  t sz=252 ask=452898 sent=452839 lost=538231 ppm=132063 cpu=100/100 short=false
+  t sz=252 ask=226449 sent=226430 lost=2 ppm=0 cpu=100/100 short=false
+  t sz=252 ask=339673 sent=339645 lost=7 ppm=2 cpu=100/85 short=false
+  t sz=252 ask=396285 sent=396271 lost=29290 ppm=8212 cpu=100/96 short=false
+  t sz=252 ask=367979 sent=367973 lost=163 ppm=49 cpu=100/92 short=false
+  t sz=252 ask=382132 sent=382182 lost=2308 ppm=671 cpu=100/92 short=false
+  t sz=252 ask=389208 sent=389194 lost=14 ppm=3 cpu=100/93 short=false
+  t sz=252 ask=392746 sent=392703 lost=147 ppm=41 cpu=100/92 short=false
+  t sz=252 ask=392746 sent=392760 lost=8413 ppm=357 cpu=100/98 short=false
+CAP G-eoip-encap-1flow f=256 pps=392760 line%=86 mbps=804 ok=true
+    ppm=357 ooo=0 lat=394.us/2.05ms jit=1.97ms cpu=100/98
+  t sz=508 ask=234962 sent=234901 lost=154701 ppm=73175 cpu=100/100 short=false
+  t sz=508 ask=117481 sent=117462 lost=1207 ppm=1141 cpu=99/67 short=false
+  t sz=508 ask=58740 sent=58730 lost=5 ppm=9 cpu=57/50 short=false
+  t sz=508 ask=88110 sent=88096 lost=4 ppm=5 cpu=59/64 short=false
+  t sz=508 ask=102795 sent=102779 lost=4 ppm=4 cpu=65/66 short=false
+  t sz=508 ask=110138 sent=110126 lost=208 ppm=209 cpu=66/66 short=false
+  t sz=508 ask=113809 sent=113798 lost=3 ppm=2 cpu=61/67 short=false
+  t sz=508 ask=115645 sent=115540 lost=996 ppm=957 cpu=66/71 short=false
+  t sz=508 ask=115645 sent=115644 lost=2125 ppm=306 cpu=70/74 short=false
+CAP G-eoip-encap-1flow f=512 pps=115644 line%=49 mbps=473 ok=true
+    ppm=306 ooo=0 lat=82.1us/11.6ms jit=11.6ms cpu=70/74
+  t sz=1020 ask=119731 sent=119700 lost=41940 ppm=38930 cpu=76/77 short=false
+  t sz=1020 ask=59865 sent=59846 lost=56 ppm=103 cpu=55/53 short=false
+  t sz=1020 ask=89798 sent=89784 lost=7 ppm=8 cpu=60/71 short=false
+  t sz=1020 ask=104764 sent=104749 lost=294 ppm=311 cpu=70/77 short=false
+  t sz=1020 ask=112247 sent=112240 lost=326 ppm=322 cpu=75/86 short=false
+  t sz=1020 ask=115989 sent=115974 lost=8031 ppm=7694 cpu=83/81 short=false
+  t sz=1020 ask=114118 sent=114111 lost=92 ppm=89 cpu=78/84 short=false
+  t sz=1020 ask=115053 sent=115031 lost=38 ppm=36 cpu=75/79 short=false
+  t sz=1020 ask=115053 sent=115058 lost=1003 ppm=145 cpu=82/85 short=false
+CAP G-eoip-encap-1flow f=1024 pps=115058 line%=96 mbps=942 ok=true
+    ppm=145 ooo=0 lat=704.us/6.85ms jit=6.76ms cpu=82/85
+  t sz=1276 ask=96153 sent=96128 lost=27024 ppm=31235 cpu=66/75 short=false
+  t sz=1276 ask=48076 sent=48069 lost=2 ppm=4 cpu=54/48 short=false
+  t sz=1276 ask=72114 sent=72113 lost=4 ppm=6 cpu=56/60 short=false
+  t sz=1276 ask=84133 sent=84126 lost=5 ppm=6 cpu=62/70 short=false
+  t sz=1276 ask=90143 sent=90132 lost=7 ppm=8 cpu=58/69 short=false
+  t sz=1276 ask=93148 sent=93138 lost=295 ppm=351 cpu=65/71 short=false
+  t sz=1276 ask=94650 sent=94629 lost=13570 ppm=15933 cpu=63/72 short=false
+  t sz=1276 ask=93899 sent=93890 lost=6805 ppm=8053 cpu=65/71 short=false
+  t sz=1276 ask=93148 sent=93151 lost=1200 ppm=214 cpu=66/71 short=false
+CAP G-eoip-encap-1flow f=1280 pps=93151 line%=96 mbps=953 ok=true
+    ppm=214 ooo=0 lat=2.55ms/5.72ms jit=5.58ms cpu=66/71
+  t sz=1514 ask=81274 sent=81221 lost=45844 ppm=62714 cpu=100/100 short=false
+  t sz=1514 ask=40637 sent=40632 lost=0 ppm=0 cpu=96/74 short=false
+  t sz=1514 ask=60955 sent=60945 lost=1170 ppm=2133 cpu=93/92 short=false
+  t sz=1514 ask=50796 sent=50773 lost=2897 ppm=6339 cpu=84/82 short=false
+  t sz=1514 ask=45716 sent=45709 lost=1120 ppm=2722 cpu=82/78 short=false
+  t sz=1514 ask=43176 sent=43169 lost=0 ppm=0 cpu=83/74 short=false
+  t sz=1514 ask=44446 sent=44439 lost=305 ppm=762 cpu=80/75 short=false
+  t sz=1514 ask=45081 sent=45074 lost=1187 ppm=2926 cpu=81/73 short=false
+  t sz=1514 ask=44446 sent=44445 lost=4173 ppm=1564 cpu=84/76 short=false
+  t sz=1514 ask=43557 sent=43556 lost=0 ppm=0 cpu=81/78 short=false
+CAP G-eoip-encap-1flow f=1518 pps=43556 line%=53 mbps=528 ok=true
+    ppm=0 ooo=2615309 lat=4.78ms/4.29s jit=4.29s cpu=81/78
+  t sz=60 ask=1488095 sent=1294797 lost=2781566 ppm=238695 cpu=100/96 short=true
+  t sz=60 ask=744047 sent=743917 lost=33804 ppm=5048 cpu=100/93 short=false
+  t sz=60 ask=372023 sent=371963 lost=3796 ppm=1133 cpu=100/59 short=false
+  t sz=60 ask=186011 sent=185981 lost=0 ppm=0 cpu=100/50 short=false
+  t sz=60 ask=279017 sent=278966 lost=6 ppm=2 cpu=100/53 short=false
+  t sz=60 ask=325520 sent=325468 lost=15 ppm=5 cpu=100/59 short=false
+  t sz=60 ask=348771 sent=348739 lost=882 ppm=281 cpu=100/59 short=false
+  t sz=60 ask=360397 sent=360434 lost=10643 ppm=3280 cpu=100/61 short=false
+  t sz=60 ask=348771 sent=348788 lost=14875 ppm=710 cpu=100/61 short=false
+CAP G-eoip-encap-256flow f=64 pps=348788 line%=23 mbps=178 ok=true
+    ppm=710 ooo=10629027 lat=62.4us/11.8ms jit=11.8ms cpu=100/61
+  t sz=124 ask=844594 sent=843965 lost=1702656 ppm=224160 cpu=100/97 short=false
+  t sz=124 ask=422297 sent=422228 lost=1070 ppm=281 cpu=100/89 short=false
+  t sz=124 ask=633445 sent=633087 lost=24708 ppm=4336 cpu=100/86 short=false
+  t sz=124 ask=527871 sent=527873 lost=13340 ppm=2807 cpu=100/81 short=false
+  t sz=124 ask=475084 sent=475185 lost=11579 ppm=2707 cpu=100/69 short=false
+  t sz=124 ask=448690 sent=448729 lost=15097 ppm=3738 cpu=100/71 short=false
+  t sz=124 ask=435493 sent=435469 lost=8311 ppm=2120 cpu=100/69 short=false
+  t sz=124 ask=428895 sent=428930 lost=4909 ppm=1271 cpu=100/71 short=false
+  t sz=124 ask=422297 sent=422284 lost=38607 ppm=1523 cpu=100/70 short=false
+  t sz=124 ask=413851 sent=413896 lost=22573 ppm=908 cpu=100/72 short=false
+CAP G-eoip-encap-256flow f=128 pps=413896 line%=49 mbps=423 ok=true
+    ppm=908 ooo=8544758 lat=64.4us/11.9ms jit=11.9ms cpu=100/72
+  t sz=252 ask=452898 sent=452778 lost=546046 ppm=133998 cpu=100/84 short=false
+  t sz=252 ask=226449 sent=226391 lost=5 ppm=2 cpu=100/51 short=false
+  t sz=252 ask=339673 sent=339640 lost=7764 ppm=2539 cpu=100/72 short=false
+  t sz=252 ask=283061 sent=283081 lost=859 ppm=337 cpu=100/63 short=false
+  t sz=252 ask=311367 sent=311379 lost=2113 ppm=753 cpu=100/64 short=false
+  t sz=252 ask=325520 sent=325467 lost=4588 ppm=1566 cpu=100/66 short=false
+  t sz=252 ask=318443 sent=318446 lost=3177 ppm=1108 cpu=100/67 short=false
+  t sz=252 ask=314905 sent=314895 lost=3049 ppm=1075 cpu=100/67 short=false
+  t sz=252 ask=311367 sent=311420 lost=23962 ppm=1282 cpu=100/70 short=false
+  t sz=252 ask=305139 sent=305143 lost=26446 ppm=1444 cpu=100/73 short=false
+  t sz=252 ask=299036 sent=299030 lost=14869 ppm=828 cpu=100/73 short=false
+CAP G-eoip-encap-256flow f=256 pps=299030 line%=66 mbps=612 ok=true
+    ppm=828 ooo=1860719 lat=71.1us/7.45ms jit=7.42ms cpu=100/73
+  t sz=508 ask=234962 sent=234888 lost=154557 ppm=73111 cpu=100/55 short=false
+  t sz=508 ask=117481 sent=117461 lost=3 ppm=2 cpu=100/41 short=false
+  t sz=508 ask=176221 sent=176213 lost=9 ppm=5 cpu=98/42 short=false
+  t sz=508 ask=205591 sent=205573 lost=5 ppm=2 cpu=100/56 short=false
+  t sz=508 ask=220276 sent=220277 lost=22846 ppm=11523 cpu=100/59 short=false
+  t sz=508 ask=212933 sent=212896 lost=21 ppm=10 cpu=100/59 short=false
+  t sz=508 ask=216604 sent=216602 lost=96 ppm=49 cpu=100/51 short=false
+  t sz=508 ask=218440 sent=218448 lost=6425 ppm=3268 cpu=100/53 short=false
+  t sz=508 ask=216604 sent=216627 lost=6432 ppm=494 cpu=100/61 short=false
+CAP G-eoip-encap-256flow f=512 pps=216627 line%=92 mbps=887 ok=true
+    ppm=494 ooo=470885 lat=205.us/12.1ms jit=12.1ms cpu=100/61
+  t sz=1020 ask=119731 sent=119701 lost=41597 ppm=38611 cpu=99/34 short=false
+  t sz=1020 ask=59865 sent=59854 lost=5 ppm=9 cpu=53/26 short=false
+  t sz=1020 ask=89798 sent=89784 lost=4 ppm=4 cpu=67/30 short=false
+  t sz=1020 ask=104764 sent=104742 lost=4 ppm=4 cpu=74/31 short=false
+  t sz=1020 ask=112247 sent=112240 lost=6 ppm=5 cpu=78/31 short=false
+  t sz=1020 ask=115989 sent=115966 lost=7996 ppm=7661 cpu=80/35 short=false
+  t sz=1020 ask=114118 sent=114110 lost=15 ppm=14 cpu=76/41 short=false
+  t sz=1020 ask=115053 sent=115043 lost=35 ppm=33 cpu=86/38 short=false
+  t sz=1020 ask=115053 sent=115045 lost=60 ppm=8 cpu=79/37 short=false
+CAP G-eoip-encap-256flow f=1024 pps=115045 line%=96 mbps=942 ok=true
+    ppm=8 ooo=418532 lat=431.us/3.20ms jit=3.15ms cpu=79/37
+  t sz=1276 ask=96153 sent=96128 lost=27023 ppm=31234 cpu=65/28 short=false
+  t sz=1276 ask=48076 sent=48069 lost=4 ppm=9 cpu=65/27 short=false
+  t sz=1276 ask=72114 sent=72105 lost=3 ppm=4 cpu=56/25 short=false
+  t sz=1276 ask=84133 sent=84126 lost=5 ppm=6 cpu=54/31 short=false
+  t sz=1276 ask=90143 sent=90132 lost=7 ppm=8 cpu=60/31 short=false
+  t sz=1276 ask=93148 sent=93130 lost=74 ppm=88 cpu=65/29 short=false
+  t sz=1276 ask=94650 sent=94637 lost=13581 ppm=15945 cpu=65/30 short=false
+  t sz=1276 ask=93899 sent=93895 lost=6806 ppm=8053 cpu=67/37 short=false
+  t sz=1276 ask=93148 sent=93150 lost=171 ppm=30 cpu=65/34 short=false
+CAP G-eoip-encap-256flow f=1280 pps=93150 line%=96 mbps=953 ok=true
+    ppm=30 ooo=3968813 lat=1.36ms/4.98ms jit=4.79ms cpu=65/34
+  t sz=1514 ask=81274 sent=81233 lost=69939 ppm=95662 cpu=100/69 short=false
+  t sz=1514 ask=40637 sent=40630 lost=0 ppm=0 cpu=95/59 short=false
+  t sz=1514 ask=60955 sent=60896 lost=0 ppm=0 cpu=94/50 short=false
+  t sz=1514 ask=71114 sent=71105 lost=0 ppm=0 cpu=99/57 short=false
+  t sz=1514 ask=76194 sent=76183 lost=0 ppm=0 cpu=100/59 short=false
+  t sz=1514 ask=78734 sent=78693 lost=31846 ppm=44964 cpu=100/66 short=false
+  t sz=1514 ask=77464 sent=77453 lost=12534 ppm=17980 cpu=100/61 short=false
+  t sz=1514 ask=76829 sent=76822 lost=3219 ppm=4655 cpu=100/60 short=false
+  t sz=1514 ask=76194 sent=76194 lost=0 ppm=0 cpu=100/66 short=false
+CAP G-eoip-encap-256flow f=1518 pps=76194 line%=93 mbps=925 ok=true
+    ppm=0 ooo=3536943 lat=7.53ms/4.29s jit=4.29s cpu=100/66
+
+[exited with code 0]
+
+# Part 2: tg-scan.rsc, fixed rates, 3 x 10 s trials each. SC ... ppm = loss per million, cpu = gen/DUT.
+SC G-eoip-1flow f=64 ask=200000 sent=199928 ppm=504 cpu=71/59
+SC G-eoip-1flow f=64 ask=200000 sent=199969 ppm=236 cpu=71/59
+SC G-eoip-1flow f=64 ask=200000 sent=199984 ppm=8 cpu=70/62
+SC G-eoip-1flow f=64 ask=300000 sent=299961 ppm=8 cpu=75/71
+SC G-eoip-1flow f=64 ask=300000 sent=299960 ppm=5 cpu=77/72
+SC G-eoip-1flow f=64 ask=300000 sent=299960 ppm=966 cpu=76/70
+SC G-eoip-1flow f=64 ask=400000 sent=399942 ppm=36 cpu=83/75
+SC G-eoip-1flow f=64 ask=400000 sent=399939 ppm=743 cpu=85/78
+SC G-eoip-1flow f=64 ask=400000 sent=399937 ppm=54 cpu=85/79
+SC G-eoip-1flow f=64 ask=500000 sent=499919 ppm=7420 cpu=90/86
+SC G-eoip-1flow f=64 ask=500000 sent=499922 ppm=7070 cpu=90/93
+SC G-eoip-1flow f=64 ask=500000 sent=499921 ppm=5978 cpu=92/85
+SC G-eoip-1flow f=64 ask=600000 sent=600002 ppm=5692 cpu=99/92
+SC G-eoip-1flow f=64 ask=600000 sent=599944 ppm=4898 cpu=98/92
+SC G-eoip-1flow f=64 ask=600000 sent=599965 ppm=6551 cpu=97/94
+SC G-eoip-1flow f=64 ask=700000 sent=699787 ppm=4629 cpu=100/94
+SC G-eoip-1flow f=64 ask=700000 sent=699928 ppm=2586 cpu=100/95
+SC G-eoip-1flow f=64 ask=700000 sent=699925 ppm=5363 cpu=100/95
+SC G-eoip-1flow f=64 ask=800000 sent=799813 ppm=1618 cpu=100/99
+SC G-eoip-1flow f=64 ask=800000 sent=799912 ppm=2690 cpu=100/99
+SC G-eoip-1flow f=64 ask=800000 sent=799869 ppm=372 cpu=100/98
+SC G-eoip-1flow f=64 ask=900000 sent=899942 ppm=1245 cpu=100/100
+SC G-eoip-1flow f=64 ask=900000 sent=899905 ppm=778 cpu=100/100
+SC G-eoip-1flow f=64 ask=900000 sent=899964 ppm=1620 cpu=100/100
+SC G-eoip-256flow f=64 ask=200000 sent=199968 ppm=7 cpu=74/51
+SC G-eoip-256flow f=64 ask=200000 sent=199969 ppm=6 cpu=75/47
+SC G-eoip-256flow f=64 ask=200000 sent=199969 ppm=7 cpu=71/48
+SC G-eoip-256flow f=64 ask=300000 sent=299960 ppm=812 cpu=80/53
+SC G-eoip-256flow f=64 ask=300000 sent=299959 ppm=8 cpu=80/54
+SC G-eoip-256flow f=64 ask=300000 sent=299961 ppm=1094 cpu=80/55
+SC G-eoip-256flow f=64 ask=400000 sent=399967 ppm=1582 cpu=83/57
+SC G-eoip-256flow f=64 ask=400000 sent=399936 ppm=1010 cpu=83/61
+SC G-eoip-256flow f=64 ask=400000 sent=399936 ppm=2594 cpu=86/61
+SC G-eoip-256flow f=64 ask=500000 sent=499922 ppm=2857 cpu=90/60
+SC G-eoip-256flow f=64 ask=500000 sent=499949 ppm=1810 cpu=91/69
+SC G-eoip-256flow f=64 ask=500000 sent=499918 ppm=1556 cpu=90/64
+SC G-eoip-256flow f=64 ask=600000 sent=599965 ppm=2751 cpu=98/67
+SC G-eoip-256flow f=64 ask=600000 sent=599960 ppm=3177 cpu=98/73
+SC G-eoip-256flow f=64 ask=600000 sent=599965 ppm=2808 cpu=98/71
+SC G-eoip-256flow f=64 ask=700000 sent=699922 ppm=5244 cpu=100/70
+SC G-eoip-256flow f=64 ask=700000 sent=699917 ppm=3285 cpu=100/72
+SC G-eoip-256flow f=64 ask=700000 sent=699924 ppm=4141 cpu=100/71
+SC G-eoip-256flow f=64 ask=800000 sent=799869 ppm=4129 cpu=100/75
+SC G-eoip-256flow f=64 ask=800000 sent=799875 ppm=5183 cpu=100/76
+SC G-eoip-256flow f=64 ask=800000 sent=799870 ppm=3841 cpu=100/78
+SC G-eoip-256flow f=64 ask=900000 sent=899947 ppm=6941 cpu=100/84
+SC G-eoip-256flow f=64 ask=900000 sent=899936 ppm=7126 cpu=100/83
+SC G-eoip-256flow f=64 ask=900000 sent=899942 ppm=7648 cpu=100/82
+SC G-eoip-1flow f=512 ask=50000 sent=49949 ppm=8 cpu=46/41
+SC G-eoip-1flow f=512 ask=50000 sent=49992 ppm=13 cpu=41/46
+SC G-eoip-1flow f=512 ask=50000 sent=49992 ppm=8 cpu=44/47
+SC G-eoip-1flow f=512 ask=100000 sent=99982 ppm=360 cpu=64/63
+SC G-eoip-1flow f=512 ask=100000 sent=99984 ppm=244 cpu=64/61
+SC G-eoip-1flow f=512 ask=100000 sent=99984 ppm=290 cpu=67/62
+SC G-eoip-1flow f=512 ask=150000 sent=149972 ppm=129 cpu=79/78
+SC G-eoip-1flow f=512 ask=150000 sent=149981 ppm=524 cpu=80/79
+SC G-eoip-1flow f=512 ask=150000 sent=149980 ppm=1161 cpu=82/77
+SC G-eoip-1flow f=512 ask=200000 sent=199969 ppm=1808 cpu=94/91
+SC G-eoip-1flow f=512 ask=200000 sent=199969 ppm=655 cpu=94/89
+SC G-eoip-1flow f=512 ask=200000 sent=199967 ppm=1101 cpu=93/93
+SC G-eoip-1flow f=512 ask=234962 sent=234867 ppm=76716 cpu=100/100
+SC G-eoip-1flow f=512 ask=234962 sent=234835 ppm=76357 cpu=99/100
+SC G-eoip-1flow f=512 ask=234962 sent=234898 ppm=75545 cpu=98/100
+SC G-eoip-1flow f=1518 ask=20000 sent=19996 ppm=0 cpu=45/51
+SC G-eoip-1flow f=1518 ask=20000 sent=19996 ppm=0 cpu=46/53
+SC G-eoip-1flow f=1518 ask=20000 sent=19997 ppm=0 cpu=47/53
+SC G-eoip-1flow f=1518 ask=40000 sent=39993 ppm=0 cpu=68/69
+SC G-eoip-1flow f=1518 ask=40000 sent=39993 ppm=0 cpu=65/69
+SC G-eoip-1flow f=1518 ask=40000 sent=39993 ppm=0 cpu=65/72
+SC G-eoip-1flow f=1518 ask=60000 sent=59991 ppm=5076 cpu=83/87
+SC G-eoip-1flow f=1518 ask=60000 sent=59988 ppm=4180 cpu=82/88
+SC G-eoip-1flow f=1518 ask=60000 sent=59996 ppm=4752 cpu=85/89
+SC G-eoip-1flow f=1518 ask=81274 sent=81261 ppm=63294 cpu=96/100
+SC G-eoip-1flow f=1518 ask=81274 sent=81262 ppm=58600 cpu=99/100
+SC G-eoip-1flow f=1518 ask=81274 sent=81261 ppm=71212 cpu=97/100
+SC G-eoip-256flow f=512 ask=50000 sent=49991 ppm=95 cpu=88/60
+SC G-eoip-256flow f=512 ask=50000 sent=49987 ppm=11 cpu=42/21
+SC G-eoip-256flow f=512 ask=50000 sent=49992 ppm=131 cpu=45/27
+SC G-eoip-256flow f=512 ask=100000 sent=99982 ppm=574 cpu=64/34
+SC G-eoip-256flow f=512 ask=100000 sent=99988 ppm=594 cpu=69/33
+SC G-eoip-256flow f=512 ask=100000 sent=99984 ppm=501 cpu=67/35
+SC G-eoip-256flow f=512 ask=150000 sent=149988 ppm=1697 cpu=79/46
+SC G-eoip-256flow f=512 ask=150000 sent=149991 ppm=600 cpu=80/46
+SC G-eoip-256flow f=512 ask=150000 sent=149980 ppm=759 cpu=77/41
+SC G-eoip-256flow f=512 ask=200000 sent=199967 ppm=807 cpu=95/50
+SC G-eoip-256flow f=512 ask=200000 sent=199959 ppm=994 cpu=95/48
+SC G-eoip-256flow f=512 ask=200000 sent=199969 ppm=710 cpu=96/52
+SC G-eoip-256flow f=512 ask=234962 sent=234893 ppm=76152 cpu=99/56
+SC G-eoip-256flow f=512 ask=234962 sent=234837 ppm=75857 cpu=99/59
+SC G-eoip-256flow f=512 ask=234962 sent=234838 ppm=75934 cpu=99/55
+SC G-eoip-256flow f=1518 ask=20000 sent=19997 ppm=0 cpu=47/25
+SC G-eoip-256flow f=1518 ask=20000 sent=19996 ppm=0 cpu=43/28
+SC G-eoip-256flow f=1518 ask=20000 sent=19997 ppm=0 cpu=49/29
+SC G-eoip-256flow f=1518 ask=40000 sent=39994 ppm=0 cpu=69/40
+SC G-eoip-256flow f=1518 ask=40000 sent=39991 ppm=0 cpu=63/36
+SC G-eoip-256flow f=1518 ask=40000 sent=39993 ppm=0 cpu=68/35
+SC G-eoip-256flow f=1518 ask=60000 sent=59989 ppm=0 cpu=84/47
+SC G-eoip-256flow f=1518 ask=60000 sent=59991 ppm=0 cpu=84/51
+SC G-eoip-256flow f=1518 ask=60000 sent=59991 ppm=0 cpu=82/48
+SC G-eoip-256flow f=1518 ask=81274 sent=81257 ppm=99798 cpu=96/64
+SC G-eoip-256flow f=1518 ask=81274 sent=81261 ppm=97944 cpu=97/61
+SC G-eoip-256flow f=1518 ask=81274 sent=81262 ppm=101140 cpu=96/64

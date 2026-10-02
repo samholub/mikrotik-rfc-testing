@@ -1,0 +1,58 @@
+# RB4011 capacity sweep - A: HW-offloaded bridge, same switch chip
+# Date 2026-09-30. Generator BENCH-NEW (RB4011iGS+, ROS 7.19.5), /tool traffic-generator, one stream,
+# ether3 out, back on ether4. DUT BENCH-712 (RB4011iGS+, ROS 7.20.7).
+# DUT config: bridge t-br (protocol-mode=none) ether3+ether4 hw=yes (H), static bridge hosts for generator MACs
+# Method: tools/bench/tg-sweep.rsc. Try line rate; else binary search to 1% of line, 10 s trials;
+# confirm 60 s (step down 2% on fail). Pass = loss < 1000 ppm (0.1%) AND sent >= 99% of asked.
+# f = frame incl FCS (packet-size f-4). cpu = generator/DUT peak per-core %. ppm = lost per million.
+# Loss includes packets in flight when the trial stops (~latency x pps).
+# Generator ceiling (config A): ~739k pps @64, ~526k @128, ~382k @256, line rate >= 512.
+  t sz=60 ask=1488095 sent=731677 lost=0 ppm=0 cpu=100/5 short=true
+  t sz=60 ask=744047 sent=741249 lost=64 ppm=9 cpu=100/9 short=false
+  t sz=60 ask=1116071 sent=736356 lost=0 ppm=0 cpu=100/10 short=true
+  t sz=60 ask=930059 sent=734830 lost=64 ppm=9 cpu=100/5 short=true
+  t sz=60 ask=837053 sent=743947 lost=0 ppm=0 cpu=100/9 short=true
+  t sz=60 ask=790550 sent=739590 lost=0 ppm=0 cpu=100/9 short=true
+  t sz=60 ask=767298 sent=715235 lost=64 ppm=9 cpu=100/6 short=true
+  t sz=60 ask=755672 sent=737408 lost=0 ppm=0 cpu=100/8 short=true
+  t sz=60 ask=744047 sent=738670 lost=0 ppm=0 cpu=100/10 short=false
+CAP A-hwbr-3to4 f=64 pps=738670 line%=49 mbps=378 ok=true
+    ppm=0 ooo=0 lat=92.0us/531.us jit=468.us cpu=100/10
+  t sz=124 ask=844594 sent=524979 lost=0 ppm=0 cpu=100/10 short=true
+  t sz=124 ask=422297 sent=421881 lost=0 ppm=0 cpu=100/9 short=false
+  t sz=124 ask=633445 sent=527520 lost=0 ppm=0 cpu=100/8 short=true
+  t sz=124 ask=527871 sent=526478 lost=0 ppm=0 cpu=100/11 short=false
+  t sz=124 ask=580658 sent=526331 lost=64 ppm=13 cpu=100/8 short=true
+  t sz=124 ask=554264 sent=527914 lost=0 ppm=0 cpu=100/10 short=true
+  t sz=124 ask=541067 sent=525482 lost=0 ppm=0 cpu=100/8 short=true
+  t sz=124 ask=534469 sent=525496 lost=0 ppm=0 cpu=100/8 short=true
+  t sz=124 ask=527871 sent=526366 lost=64 ppm=2 cpu=100/9 short=false
+CAP A-hwbr-3to4 f=128 pps=526366 line%=62 mbps=538 ok=true
+    ppm=2 ooo=0 lat=120.us/203.us jit=129.us cpu=100/9
+  t sz=252 ask=452898 sent=339314 lost=43 ppm=14 cpu=100/9 short=true
+  t sz=252 ask=226449 sent=226413 lost=19 ppm=9 cpu=100/10 short=false
+  t sz=252 ask=339673 sent=339615 lost=43 ppm=14 cpu=100/9 short=false
+  t sz=252 ask=396285 sent=332601 lost=251 ppm=83 cpu=100/9 short=true
+  t sz=252 ask=367979 sent=368005 lost=0 ppm=0 cpu=100/9 short=false
+  t sz=252 ask=382132 sent=382160 lost=1170 ppm=340 cpu=100/9 short=false
+  t sz=252 ask=389208 sent=340558 lost=0 ppm=0 cpu=100/8 short=true
+  t sz=252 ask=385670 sent=366559 lost=2155 ppm=653 cpu=100/9 short=true
+  t sz=252 ask=382132 sent=382253 lost=10866 ppm=473 cpu=100/9 short=false
+CAP A-hwbr-3to4 f=256 pps=382253 line%=84 mbps=782 ok=true
+    ppm=473 ooo=0 lat=323.us/2.17ms jit=2.11ms cpu=100/9
+  t sz=508 ask=234962 sent=234505 lost=289 ppm=136 cpu=100/13 short=false
+  t sz=508 ask=234962 sent=234547 lost=323 ppm=22 cpu=100/9 short=false
+CAP A-hwbr-3to4 f=512 pps=234547 line%=99 mbps=960 ok=true
+    ppm=22 ooo=0 lat=1.34ms/1.46ms jit=1.38ms cpu=100/9
+  t sz=1020 ask=119731 sent=119678 lost=261 ppm=242 cpu=100/6 short=false
+  t sz=1020 ask=119731 sent=119723 lost=253 ppm=35 cpu=91/9 short=false
+CAP A-hwbr-3to4 f=1024 pps=119723 line%=99 mbps=980 ok=true
+    ppm=35 ooo=0 lat=1.95ms/2.94ms jit=2.85ms cpu=91/9
+  t sz=1276 ask=96153 sent=96124 lost=51 ppm=58 cpu=91/12 short=false
+  t sz=1276 ask=96153 sent=96151 lost=88 ppm=15 cpu=88/11 short=false
+CAP A-hwbr-3to4 f=1280 pps=96151 line%=99 mbps=984 ok=true
+    ppm=15 ooo=0 lat=1.02ms/1.89ms jit=1.81ms cpu=88/11
+  t sz=1514 ask=81274 sent=81253 lost=170 ppm=232 cpu=84/8 short=false
+  t sz=1514 ask=81274 sent=81270 lost=236 ppm=48 cpu=80/10 short=false
+CAP A-hwbr-3to4 f=1518 pps=81270 line%=99 mbps=986 ok=true
+    ppm=48 ooo=0 lat=2.31ms/3.10ms jit=3.03ms cpu=80/10

@@ -1,0 +1,120 @@
+# RB4011 capacity - J: EoIP + IPsec (ipsec-secret), RB4011 <-> RB4011
+# Date 2026-10-01. DUT BENCH-712 (ROS 7.20.7) bridges ether3 <-> t-eoip (10.99.4.1 -> 10.99.4.2, id 100,
+# ipsec-secret, allow-fast-path=no - REQUIRED: "cannot enable fastpath together with ipsec yet").
+# Generator BENCH-NEW (ROS 7.19.5) terminates the far end (g-eoip, same secret) and counts on a
+# traffic-generator port bound to g-eoip, so the GENERATOR ALSO DECRYPTS: this is a whole RB4011 pair,
+# not the DUT alone. Both CPUs read 100% at the ceiling. Negotiated SA: aes-cbc 256 / sha1, flagged H
+# (hardware) and E. EoIP actual-mtu 1416, so 1518 B frames fragment. Test secret only, not a bench password.
+# Method: tools/bench/tg-scan.rsc, fixed rates, 3 x 10 s trials. ppm = loss per million, cpu = gen/DUT peak.
+SA enc=aes-cbc auth=sha1 key=256
+SA enc=aes-cbc auth=sha1 key=256
+SA enc=aes-cbc auth=sha1 key=256
+SA enc=aes-cbc auth=sha1 key=256
+SC J-eoipsec-1flow f=64 ask=25000 sent=24982 ppm=8 cpu=77/65
+SC J-eoipsec-1flow f=64 ask=25000 sent=24995 ppm=8 cpu=76/68
+SC J-eoipsec-1flow f=64 ask=25000 sent=24995 ppm=26 cpu=76/65
+SC J-eoipsec-1flow f=64 ask=50000 sent=49990 ppm=706 cpu=99/89
+SC J-eoipsec-1flow f=64 ask=50000 sent=49991 ppm=2131 cpu=96/88
+SC J-eoipsec-1flow f=64 ask=50000 sent=49988 ppm=71 cpu=96/92
+SC J-eoipsec-1flow f=64 ask=75000 sent=74960 ppm=228963 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=75000 sent=74983 ppm=225737 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=75000 sent=74964 ppm=225727 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=100000 sent=99955 ppm=424302 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=100000 sent=99947 ppm=424526 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=100000 sent=99974 ppm=426191 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=150000 sent=149968 ppm=623484 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=150000 sent=149925 ppm=624853 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=150000 sent=149967 ppm=625386 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=200000 sent=199953 ppm=725499 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=200000 sent=199951 ppm=725441 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=200000 sent=199951 ppm=725901 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=300000 sent=283979 ppm=812665 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=300000 sent=281621 ppm=809851 cpu=100/100
+SC J-eoipsec-1flow f=64 ask=300000 sent=282233 ppm=811062 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=25000 sent=24995 ppm=26 cpu=77/70
+SC J-eoipsec-1flow f=512 ask=25000 sent=24994 ppm=26 cpu=77/63
+SC J-eoipsec-1flow f=512 ask=25000 sent=24995 ppm=26 cpu=70/63
+SC J-eoipsec-1flow f=512 ask=50000 sent=49991 ppm=4094 cpu=95/88
+SC J-eoipsec-1flow f=512 ask=50000 sent=49947 ppm=7220 cpu=95/91
+SC J-eoipsec-1flow f=512 ask=50000 sent=49991 ppm=6369 cpu=96/88
+SC J-eoipsec-1flow f=512 ask=75000 sent=74982 ppm=233705 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=75000 sent=74958 ppm=232564 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=75000 sent=74982 ppm=233408 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=100000 sent=99947 ppm=434297 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=100000 sent=99947 ppm=431419 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=100000 sent=99976 ppm=431592 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=150000 sent=149929 ppm=627755 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=150000 sent=149974 ppm=627720 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=150000 sent=149917 ppm=628960 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=200000 sent=191551 ppm=714904 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=200000 sent=191780 ppm=715177 cpu=100/100
+SC J-eoipsec-1flow f=512 ask=200000 sent=191208 ppm=715515 cpu=100/100
+SC J-eoipsec-1flow f=1518 ask=10000 sent=9998 ppm=11 cpu=88/49
+SC J-eoipsec-1flow f=1518 ask=10000 sent=9997 ppm=0 cpu=52/49
+SC J-eoipsec-1flow f=1518 ask=10000 sent=9992 ppm=0 cpu=60/51
+SC J-eoipsec-1flow f=1518 ask=20000 sent=19996 ppm=22 cpu=77/69
+SC J-eoipsec-1flow f=1518 ask=20000 sent=19998 ppm=27 cpu=78/74
+SC J-eoipsec-1flow f=1518 ask=20000 sent=19998 ppm=33 cpu=78/72
+SC J-eoipsec-1flow f=1518 ask=30000 sent=29994 ppm=470 cpu=97/90
+SC J-eoipsec-1flow f=1518 ask=30000 sent=29994 ppm=440 cpu=93/90
+SC J-eoipsec-1flow f=1518 ask=30000 sent=29994 ppm=1707 cpu=95/90
+SC J-eoipsec-1flow f=1518 ask=40000 sent=39995 ppm=1177 cpu=98/98
+SC J-eoipsec-1flow f=1518 ask=40000 sent=39993 ppm=188 cpu=98/98
+SC J-eoipsec-1flow f=1518 ask=40000 sent=39988 ppm=1008 cpu=98/96
+SC J-eoipsec-1flow f=1518 ask=60000 sent=59992 ppm=245905 cpu=100/100
+SC J-eoipsec-1flow f=1518 ask=60000 sent=59991 ppm=242430 cpu=100/100
+SC J-eoipsec-1flow f=1518 ask=60000 sent=59978 ppm=244763 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=25000 sent=24995 ppm=8 cpu=76/53
+SC J-eoipsec-256flow f=64 ask=25000 sent=24996 ppm=17 cpu=78/51
+SC J-eoipsec-256flow f=64 ask=25000 sent=24995 ppm=448 cpu=79/49
+SC J-eoipsec-256flow f=64 ask=50000 sent=49991 ppm=197 cpu=100/72
+SC J-eoipsec-256flow f=64 ask=50000 sent=49990 ppm=911 cpu=100/70
+SC J-eoipsec-256flow f=64 ask=50000 sent=49989 ppm=80 cpu=100/77
+SC J-eoipsec-256flow f=64 ask=75000 sent=74982 ppm=232684 cpu=100/87
+SC J-eoipsec-256flow f=64 ask=75000 sent=74982 ppm=231562 cpu=100/81
+SC J-eoipsec-256flow f=64 ask=75000 sent=74962 ppm=230938 cpu=100/78
+SC J-eoipsec-256flow f=64 ask=100000 sent=99977 ppm=430675 cpu=100/92
+SC J-eoipsec-256flow f=64 ask=100000 sent=99937 ppm=428254 cpu=100/94
+SC J-eoipsec-256flow f=64 ask=100000 sent=99974 ppm=426622 cpu=100/94
+SC J-eoipsec-256flow f=64 ask=150000 sent=149923 ppm=625651 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=150000 sent=149926 ppm=624980 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=150000 sent=149967 ppm=626116 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=200000 sent=199933 ppm=726711 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=200000 sent=199888 ppm=725158 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=200000 sent=199896 ppm=725921 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=300000 sent=282125 ppm=810426 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=300000 sent=281797 ppm=809881 cpu=100/100
+SC J-eoipsec-256flow f=64 ask=300000 sent=281840 ppm=810530 cpu=100/100
+SC J-eoipsec-256flow f=512 ask=25000 sent=24995 ppm=22 cpu=80/51
+SC J-eoipsec-256flow f=512 ask=25000 sent=24995 ppm=26 cpu=80/53
+SC J-eoipsec-256flow f=512 ask=25000 sent=24996 ppm=13 cpu=75/53
+SC J-eoipsec-256flow f=512 ask=50000 sent=49988 ppm=1346 cpu=100/67
+SC J-eoipsec-256flow f=512 ask=50000 sent=49991 ppm=228 cpu=100/70
+SC J-eoipsec-256flow f=512 ask=50000 sent=49990 ppm=973 cpu=100/69
+SC J-eoipsec-256flow f=512 ask=75000 sent=74982 ppm=231906 cpu=100/78
+SC J-eoipsec-256flow f=512 ask=75000 sent=74967 ppm=234408 cpu=100/79
+SC J-eoipsec-256flow f=512 ask=75000 sent=74984 ppm=235831 cpu=100/78
+SC J-eoipsec-256flow f=512 ask=100000 sent=99950 ppm=429065 cpu=100/93
+SC J-eoipsec-256flow f=512 ask=100000 sent=99974 ppm=431427 cpu=100/93
+SC J-eoipsec-256flow f=512 ask=100000 sent=99974 ppm=428720 cpu=100/91
+SC J-eoipsec-256flow f=512 ask=150000 sent=149919 ppm=629418 cpu=100/100
+SC J-eoipsec-256flow f=512 ask=150000 sent=149924 ppm=631542 cpu=100/100
+SC J-eoipsec-256flow f=512 ask=150000 sent=149924 ppm=629161 cpu=100/100
+SC J-eoipsec-256flow f=512 ask=200000 sent=191741 ppm=715284 cpu=100/100
+SC J-eoipsec-256flow f=512 ask=200000 sent=191316 ppm=714381 cpu=100/100
+SC J-eoipsec-256flow f=512 ask=200000 sent=191163 ppm=716084 cpu=100/100
+SC J-eoipsec-256flow f=1518 ask=10000 sent=9991 ppm=0 cpu=90/47
+SC J-eoipsec-256flow f=1518 ask=10000 sent=9997 ppm=0 cpu=56/42
+SC J-eoipsec-256flow f=1518 ask=10000 sent=9998 ppm=0 cpu=52/43
+SC J-eoipsec-256flow f=1518 ask=20000 sent=19984 ppm=77 cpu=75/58
+SC J-eoipsec-256flow f=1518 ask=20000 sent=19996 ppm=27 cpu=78/60
+SC J-eoipsec-256flow f=1518 ask=20000 sent=19996 ppm=900 cpu=73/59
+SC J-eoipsec-256flow f=1518 ask=30000 sent=29976 ppm=859 cpu=95/71
+SC J-eoipsec-256flow f=1518 ask=30000 sent=29994 ppm=629 cpu=95/74
+SC J-eoipsec-256flow f=1518 ask=30000 sent=29994 ppm=555 cpu=91/74
+SC J-eoipsec-256flow f=1518 ask=40000 sent=39996 ppm=1597 cpu=100/88
+SC J-eoipsec-256flow f=1518 ask=40000 sent=39992 ppm=6348 cpu=100/87
+SC J-eoipsec-256flow f=1518 ask=40000 sent=39993 ppm=6384 cpu=100/86
+SC J-eoipsec-256flow f=1518 ask=60000 sent=59986 ppm=968826 cpu=99/100
+SC J-eoipsec-256flow f=1518 ask=60000 sent=59989 ppm=1000000 cpu=93/100
+SC J-eoipsec-256flow f=1518 ask=60000 sent=59990 ppm=1000000 cpu=97/100

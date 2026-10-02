@@ -1,0 +1,40 @@
+# The owner's stated MTU standard, benched 2026-10-02. DUT BENCH-712 (RB4011, ROS 7.20.7), generator BENCH-NEW.
+# Build as the field standard: vendor port ether4 (= field ether1) -> t-v661 VLAN interface -> bridge (hw=no
+# client port) -> client port ether3. Traffic-generator frames; packet-size = frame without FCS. 1000 pps x 3 s.
+# Owner's description: "interface mtu 2026, vlan mtu 2024, client port 2026".
+#
+# Step 1: vendor port l2mtu/mtu 2026, client port l2mtu/mtu 2026, then `/interface vlan set t-v661 mtu=2024`:
+VLANSET refused        (vlan l2mtu = vendor port l2mtu - 4 = 2022; RouterOS will not set mtu 2024 above it)
+STATE e4 mtu/l2mtu=2026/2026 v661 mtu/l2mtu=1500/2022 e3=2026/2026
+MTU untagged L3 2022 tx=1998 rx=1998
+MTU untagged L3 2024 tx=1999 rx=0
+MTU untagged L3 2026 tx=1999 rx=0
+MTU cust-tagged L3 2018 tx=1998 rx=1998
+MTU cust-tagged L3 2020 tx=2000 rx=0
+MTU cust-tagged L3 2022 tx=1999 rx=0
+MTU vendor-661 L3 2022 tx=2000 rx=2000
+MTU vendor-661 L3 2024 tx=2000 rx=0
+# The VLAN interface stayed at mtu 1500 yet passed L3 2022: for bridged frames its L3 mtu does not apply;
+# its l2mtu (2022) does. Raising the client port to 2026 does not help.
+#
+# Step 2: only the vendor port changed, l2mtu 2032 (VLAN interface still mtu 1500, now l2mtu 2028):
+STATE e4 l2mtu=2032 v661 mtu/l2mtu=1500/2028
+MTU untagged L3 2024 tx=1993 rx=1993
+MTU untagged L3 2026 tx=1999 rx=1999
+MTU untagged L3 2028 tx=2000 rx=2000
+MTU cust-tagged L3 2020 tx=1999 rx=1999
+MTU cust-tagged L3 2022 tx=1999 rx=1999
+MTU cust-tagged L3 2024 tx=1999 rx=1999
+MTU vendor-661 L3 2024 tx=1998 rx=1998
+MTU vendor-661 L3 2026 tx=1999 rx=1999
+#
+# Rule: the customer's largest frame payload (L3 MTU, + 4 if the customer tags) must fit the vendor VLAN
+# interface's l2mtu, which is the vendor port's l2mtu - 4. So vendor port l2mtu = customer MTU + 8
+# (2032 for 2024; 9008 for 9000; RB4011 ports allow 9578). The VLAN interface mtu setting does not matter for
+# bridged traffic. This refines ...-q1-mtu-qinq.txt, whose fix also raised the VLAN mtu - not needed.
+# Side effect seen: changing l2mtu on a switch1 port (ether3/4) briefly reset the chip, so ether2 on the same
+# chip dropped pings for a moment.
+#
+# Owner clarification 2026-10-02: the standard VLAN mtu is 2022 (4 B under the 2026 port), not 2024 - i.e. the
+# step 1 state above minus the refused set. Customers get 2022 untagged / 2018 tagged; vendor port l2mtu 2030
+# would give tagged customers the full 2022.

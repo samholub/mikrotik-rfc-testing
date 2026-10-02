@@ -1,0 +1,245 @@
+﻿Merged script rfc2544.rsc: fault matrix on the bench
+Date   : 2026-09-25
+Path   : BENCH-NEW RB4011 (ROS 7.19.5) ether2 <-> ether2 BENCH-712 RB4011 (ROS 7.20.7), direct cable
+Script : rfc2544.rsc as committed with this record; the bench copy had the btest password blanked
+         (the typed-IP path uses the prompted admin login).
+Load   : 20 Mbps (G7: 200 Mbps), Brief (G0x/G2x: Extended), all six sizes, run from BENCH-NEW
+         (G4b: from BENCH-712).
+Faults : raw prerouting drop, nth=N,1, on ether2 of the RECEIVING router. "rule" lines below are
+         the drop counters: first pair BENCH-NEW (t-drop, t-dead), second pair BENCH-712.
+
+--- SCORE ---
+case                         expected                        got
+G0  clean                    PASS all                        PASS all
+G1  return loss 0.05%        PASS all                        PASS all (0.04-0.05%)
+G2  return loss 0.20%        FAIL all                        FAIL all (0.16-0.21%)
+G3  outbound loss 0.05%      PASS all                        PASS all
+G4  outbound loss 0.20%      PASS all (documented limit)     PASS all
+G4b G4 run from far end      FAIL all                        FAIL all (0.17-0.20%)
+G5  dead return              FAIL all                        FAIL all (Back 0%)
+G6  outbound loss 10%        FAIL all                        FAIL all (Out 89%)
+G7  200 Mbps, CPU limit      no FAIL; overload INCONCLUSIVE  70 B INCONCLUSIVE (CPU 100), rest PASS
+G8  dead outbound            FAIL all                        FAIL all (Out 0%)
+G0x clean, Extended          PASS all                        PASS all
+G2x return 0.20%, Extended   FAIL all                        FAIL all (0.19%)
+                                                             12 / 12
+Runtime: Brief 1.5 min per case (6 sizes), Extended 6.5 min.
+Edge: G7 128 B read Out 95% at CPU 99% with 3 lost, and PASSes by rule (loss within SLA, >=95%).
+
+--- EXAMPLE BLOCKS ---
+--- 70 B frame | 20 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Arrived : far end got 100% | 0% came back
+  Rate    : 19.800 Mbps out | 0.000 Mbps back (L1)
+  Lost    : 0 of 247491 coming back (0.00%), SLA 0.10%
+  CPU     : this router 26% | far end 32%
+  Latency : 0.23 avg, 0.43 max ms
+  Note    : loss is counted coming back; outbound only for big loss
+  Result  : FAIL
+  ! Only 0% came back
+  ! Confirm from the other end before escalating
+
+--- 70 B frame | 200 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Arrived : far end got 81% | 73% came back
+  Rate    : 160.381 Mbps out | 146.034 Mbps back (L1)
+  Lost    : 8922 of 2474991 coming back (0.36%), SLA 0.10%
+  CPU     : this router 100% | far end 100%
+  Latency : 2.46 avg, 4.47 max ms
+  Note    : loss is counted coming back; outbound only for big loss
+  Result  : INCONCLUSIVE
+  ! A router reached 100% CPU - that can cause this loss.
+  ! Lower the speed or skip the small frames, then re-run
+  ! This router dropped 2440 frames in its own queues
+
+--- SUMMARIES AS PRINTED ---
+=== CASE G0-clean ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00    99     98    32          PASS
+  128 B          0     150498    0.00    99     98    23          PASS
+  256 B          0      80703    0.00    99     98    15          PASS
+  512 B          0      41868    0.00    99     98    10          PASS
+  1024 B         0      21330    0.00    99     98     6          PASS
+  1500 B         0      14652    0.00    99     98     5          PASS
+  PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+=== CASE G1-rev-0.05 ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B         134     247491    0.05    99     98    34          PASS
+  128 B         73     150498    0.04    99     98    23          PASS
+  256 B         39      80703    0.04    99     98    16          PASS
+  512 B         19      41868    0.04    99     98    10          PASS
+  1024 B         9      21330    0.04    99     98     7          PASS
+  1500 B         6      14652    0.04    99     98     5          PASS
+  PASS: 6 size(s), 280 lost of 556542 = 0.05% (SLA 0.10%)
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop    62 982      322
+   rule 1 X prerouting  drop         0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+=== CASE G2-rev-0.20 ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B         540     247491    0.21   100     98    32          FAIL
+  128 B        292     150498    0.19    99     98    22          FAIL
+  256 B        155      80703    0.19    99     98    15          FAIL
+  512 B         78      41868    0.18    99     98    10          FAIL
+  1024 B        38      21330    0.17    99     98     6          FAIL
+  1500 B        24      14652    0.16    99     98     7          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop    251 764    1 288
+   rule 1 X prerouting  drop          0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+=== CASE G3-fwd-0.05 ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00    99     98    34          PASS
+  128 B          0     150498    0.00    99     98    23          PASS
+  256 B          0      80703    0.00    99     98    16          PASS
+  512 B          0      41868    0.00    99     98    11          PASS
+  1024 B         0      21330    0.00    99     98     5          PASS
+  1500 B         0      14652    0.00    99     98     6          PASS
+  PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop    62 416      310
+   rule 1 X prerouting  drop         0        0
+=== CASE G4-fwd-0.20 ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00    99     98    32          PASS
+  128 B          0     150498    0.00    99     98    25          PASS
+  256 B          0      80703    0.00    99     98    14          PASS
+  512 B          0      41868    0.00    99     98     9          PASS
+  1024 B         0      21330    0.00    99     98     6          PASS
+  1500 B         0      14652    0.00    99     98     5          PASS
+  PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop    253 326    1 257
+   rule 1 X prerouting  drop          0        0
+=== CASE G4b-fwd-0.20-from-far-end ===
+  SUMMARY | BENCH-712 -> 192.168.78.1 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B         496     247491    0.20    99     98    33          FAIL
+  128 B        293     150498    0.19    99     98    24          FAIL
+  256 B        155      80703    0.19    99     98    16          FAIL
+  512 B         78      41868    0.18    99     98    10          FAIL
+  1024 B        37      21330    0.17    99     98     7          FAIL
+  1500 B        27      14652    0.18    99     98     6          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.1
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop    251 794    1 249
+   rule 1 X prerouting  drop          0        0
+=== CASE G5-dead-return ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00   100      0    32          FAIL
+  128 B          0     150498    0.00    99      0    23          FAIL
+  256 B          0      80703    0.00    99      0    15          FAIL
+  512 B          0      41868    0.00    99      0     8          FAIL
+  1024 B         0      21330    0.00    99      0     6          FAIL
+  1500 B         0      14652    0.00    99      0     5          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop              0        0
+   rule 1 X prerouting  drop    124 555 512  616 766
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+=== CASE G6-fwd-10 ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00    89     98    32          FAIL
+  128 B          0     150498    0.00    89     98    22          FAIL
+  256 B          0      80703    0.00    89     98    14          FAIL
+  512 B          0      41868    0.00    89     98    10          FAIL
+  1024 B         0      21330    0.00    89     98     6          FAIL
+  1500 B         0      14652    0.00    89     98     7          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop    12 493 566   61 928
+   rule 1 X prerouting  drop             0        0
+=== CASE G7-cpu-limit-200M ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 200 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B        8922    2474991    0.36    81     73   100  INCONCLUSIVE
+  128 B          3    1505061    0.00    95     99    99          PASS
+  256 B          0     807057    0.00    99     98    74          PASS
+  512 B          0     418698    0.00   100     99    46          PASS
+  1024 B         0     213354    0.00    99     98    29          PASS
+  1500 B         0     146538    0.00    99     98    24          PASS
+  PASS: 5 size(s), 3 lost of 3090708 = 0.00% (SLA 0.10%)
+  INCONCLUSIVE: 1 size(s). A router hit its CPU limit, so the loss
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+=== CASE G8-dead-outbound ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00     0     98    33          FAIL
+  128 B          0     150498    0.00     0     98    22          FAIL
+  256 B          0      80703    0.00     0     98    14          FAIL
+  512 B          0      41868    0.00     0     98     9          FAIL
+  1024 B         0      21330    0.00     0     98     6          FAIL
+  1500 B         0      14652    0.00     0     98     4          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop              0        0
+   rule 1 X prerouting  drop    126 446 768  646 369
+=== CASE G0x-clean-extended ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Extended
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0    1622441    0.00    99     99    34          PASS
+  128 B          0     986598    0.00    99     99    26          PASS
+  256 B          0     529053    0.00    99     99    15          PASS
+  512 B          0     274468    0.00    99     99    11          PASS
+  1024 B         0     139830    0.00    99     99     7          PASS
+  1500 B         0      96052    0.00    99     99     5          PASS
+  PASS: 6 size(s), 0 lost of 3648442 = 0.00% (SLA 0.10%)
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0
+=== CASE G2x-rev-0.20-extended ===
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Extended
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B        3235    1622441    0.19   100     99    33          FAIL
+  128 B       1966     986598    0.19    99     99    25          FAIL
+  256 B       1051     529053    0.19    99     99    16          FAIL
+  512 B        542     274468    0.19    99     99    11          FAIL
+  1024 B       272     139830    0.19    99     99     8          FAIL
+  1500 B       185      96052    0.19    99     99     6          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+   rule === BENCH-NEW COUNTERS ===
+   rule 0 X prerouting  drop    1 516 760    7 514
+   rule 1 X prerouting  drop            0        0
+   rule === BENCH-712 COUNTERS ===
+   rule 0 X prerouting  drop        0        0
+   rule 1 X prerouting  drop        0        0

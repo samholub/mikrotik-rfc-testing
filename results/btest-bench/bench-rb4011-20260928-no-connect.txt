@@ -1,0 +1,115 @@
+btest never connects: what the callback sees, and what rfc-test.rsc prints
+Date   : 2026-09-28
+Path   : BENCH-NEW RB4011 (ROS 7.19.5) -> BENCH-712 RB4011 (ROS 7.20.7), direct cable
+Script : rfc-test.rsc at fbd9b3d, btest password blanked (typed-IP path, admin login)
+Load   : Brief, 20 Mbps, 70 B only
+Why    : code review finding - the script never reads btest's status, so a test that
+         never connects may be reported as a dead circuit.
+Faults : wrong admin password typed; raw prerouting drop of tcp/2000 on BENCH-712 ether2
+Result : Finding confirmed. btest does not raise an error in either case: the do={} callback
+         fires with a failure status and zero rates, the script carries on, and prints
+         FAIL with 0% both ways and "Confirm from the other end before escalating".
+         connection-count reads the requested 20, so the "btest used N streams" check
+         does not catch it either. The ping in the callback still succeeds (0.3 ms),
+         so the block shows a live path with no traffic.
+         Rule and script removed afterwards.
+
+=== PROBE bare btest, 1482 B, 1 Mbps, 5 s (callback prints status) ===
+wrong password     : connecting -> authentication failed; tx/rx 0; script continues (no :error)
+correct password   : connecting -> running x5 -> done testing; ~0.97 Mbps each way
+tcp/2000 blocked   : connecting -> connecting -> can not connect; tx 0; script continues
+(BENCH-712 logged "login failure for user admin via bandwidth-test" for the wrong password.)
+
+=== CASE A-wrong-password ===
+Running 70 B ...
+                status: connecting
+      connection-count: 20
+                status: authentication failed
+      connection-count: 20
+
+--- 70 B frame | 20 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Arrived : far end got 0% | 0% came back
+  Rate    : 0.000 Mbps out | 0.000 Mbps back (L1)
+  Lost    : 0 of 247491 coming back (0.00%), SLA 0.10%
+  CPU     : this router 0% | far end 0%
+  Latency : 0.28 avg, 0.31 max ms
+  Note    : loss is counted coming back; outbound only for big loss
+  Result  : FAIL
+  ! Only 0% arrived at the far end
+  ! Only 0% came back
+  ! Confirm from the other end before escalating
+===========================================================================
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+===========================================================================
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00     0      0     0          FAIL
+---------------------------------------------------------------------------
+  FAIL: 1 size(s). Confirm by running the same test FROM 192.168.78.2
+  before escalating. Escalate only what both ends agree on.
+  Loss is counted coming back. Outbound is only checked for big loss
+  (under 95% arriving). To judge outbound at the SLA, run from 192.168.78.2.
+===========================================================================
+
+=== CASE B-port-2000-blocked (correct password) ===
+Running 70 B ...
+                status: connecting
+                status: can not connect
+
+--- 70 B frame | 20 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Arrived : far end got 0% | 0% came back
+  Rate    : 0.000 Mbps out | 0.000 Mbps back (L1)
+  Lost    : 0 of 247491 coming back (0.00%), SLA 0.10%
+  CPU     : this router 0% | far end 0%
+  Latency : 0.30 avg, 0.37 max ms
+  Note    : loss is counted coming back; outbound only for big loss
+  Result  : FAIL
+  ! Only 0% arrived at the far end
+  ! Only 0% came back
+  ! Confirm from the other end before escalating
+===========================================================================
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+===========================================================================
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00     0      0     0          FAIL
+---------------------------------------------------------------------------
+  FAIL: 1 size(s). Confirm by running the same test FROM 192.168.78.2
+  before escalating. Escalate only what both ends agree on.
+  Loss is counted coming back. Outbound is only checked for big loss
+  (under 95% arriving). To judge outbound at the SLA, run from 192.168.78.2.
+===========================================================================
+
+BENCH-712 raw after case B: t-btest dropped 14 packets / 840 B (the TCP connect attempts).
+
+=== AFTER THE FIX (btest status checked; stops the run if btest never reached running) ===
+Same path and load. Script = rfc-test.rsc with the fix, btest password blanked.
+Result : 3 of 3 as expected. Rule and script removed afterwards.
+
+--- CASE A2 wrong password, sizes 1,6 (stops at the first size) ---
+Running 70 B ...
+                status: connecting
+                status: authentication failed
+
+--- 70 B frame | 20 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Result  : NO TEST - btest: authentication failed
+  ! Nothing was measured. Check the address, the login, and that
+  ! bandwidth-server is on at the far end, then re-run.
+btest did not run
+
+--- CASE B2 tcp/2000 blocked on BENCH-712, correct password ---
+  Result  : NO TEST - btest: can not connect
+  (same block and stop as A2)
+
+--- CASE C2 clean, correct password, sizes 1,6 ---
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00    99     99    33          PASS
+  1500 B         0      14652    0.00    99     98     5          PASS
+  PASS: 2 size(s), 0 lost of 262143 = 0.00% (SLA 0.10%)
+
+Router log:
+  script,warning rfc 70 B no test: authentication failed
+  script,warning rfc 70 B no test: can not connect
+  script,info rfc 70 B lost=0 of 247491 out=99 back=99 cpu=33/33 PASS
+  script,info rfc 1500 B lost=0 of 14652 out=99 back=98 cpu=5/4 PASS

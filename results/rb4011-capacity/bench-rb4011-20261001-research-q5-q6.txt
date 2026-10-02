@@ -1,0 +1,37 @@
+# RESEARCH.md questions 5 and 6, bench 2026-10-01. Sender/receiver as stated; DUT BENCH-712 ROS 7.20.7,
+# generator BENCH-NEW ROS 7.19.5.
+#
+# Q5: can one traffic-generator count a stream sent one-way by another?  YES, if both use the same
+# test-id and stream id. BENCH-712: stream sq7 id=7 on ether7, 10000 pps, `start test-id=77` (over SSH,
+# accepted). BENCH-NEW: stream rx7 id=7 on ether7, packet-count=1, `quick test-id=77`:
+Q5 seq=1 tx=1 rx=10002 lost=-10001
+Q5 seq=2 tx=0 rx=10000 lost=-10000
+Q5 seq=3 tx=0 rx=10001 lost=-10001
+Q5 seq=4 tx=0 rx=10000 lost=-10000
+Q5 seq=TOT tx=1 rx=40003 lost=-40002
+# Same with a different test-id: rx=0. Receiver's "lost" is meaningless (own tx); loss = sender tx - receiver
+# rx. Latency needs synced clocks (not tested). Out-of-order not tested.
+#
+# Q6: does traffic-generator's burst pattern expose shallow-buffer loss that UDP btest misses?
+# DUT routed ether3 -> ether4 with /queue tree t-shape parent=ether4 packet-mark=no-mark max-limit=100M,
+# queue type pfifo with pfifo-limit 8 / 2 / 1. TG: BENCH-NEW -> DUT (forwarded) at 1518 B frames.
+# btest: from the DUT itself (UDP, direction=transmit, size 1500) to BENCH-NEW's bandwidth-server, so it
+# crosses the same queue. 20 s each. qdrop/drop = the queue's own dropped counter (independent evidence).
+TG mbps=50 tx=78208 rx=78208 qdrop=0 pkts=82851          (pfifo 8)
+TG mbps=80 tx=125144 rx=125144 qdrop=0 pkts=133222       (pfifo 8)
+TG mbps=95 tx=148607 rx=148607 qdrop=0 pkts=158215       (pfifo 8)
+BT rate=50000000 txavg=48996992 cb=21 drop=0 pkts=84143  (pfifo 8)
+BT rate=80000000 txavg=78379288 cb=21 drop=0 pkts=134368 (pfifo 8)
+BT rate=95000000 txavg=93028632 cb=21 drop=0 pkts=159579 (pfifo 8)
+TG q=2 mbps=95 tx=148545 rx=148543 qdrop=0 pkts=157376
+TG q=2 mbps=99 tx=154881 rx=154881 qdrop=0 pkts=164899
+TG q=1 mbps=95 tx=148607 rx=148606 qdrop=0 pkts=0        (counter read raced the reset; rx shows 1 lost)
+TG q=1 mbps=99 tx=154811 rx=154811 qdrop=0 pkts=164724
+BT rate=95000000 txavg=92985648 cb=21 drop=4 pkts=159555  (pfifo 2)
+BT rate=99000000 txavg=96985952 cb=21 drop=8 pkts=166349  (pfifo 2)
+BT rate=95000000 txavg=92976224 cb=21 drop=72 pkts=159477 (pfifo 1)
+BT rate=99000000 txavg=96912352 cb=21 drop=78 pkts=166378 (pfifo 1)
+# Result: NOT reproduced. Below the shaper rate traffic-generator is evenly paced and lost nothing even
+# with a 1-packet queue; btest (generated on the DUT) dropped 4-78 packets (<=0.05%). Here btest is the
+# burstier one. Limits: one shaper type, one frame size, btest sourced from the DUT not forwarded,
+# and traffic-generator near LINE rate does queue (2-3 ms latency tails in the capacity runs).

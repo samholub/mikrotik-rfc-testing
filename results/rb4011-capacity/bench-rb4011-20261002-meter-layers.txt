@@ -1,0 +1,51 @@
+# What each RouterOS meter counts, per packet - bench 2026-10-02. Generator BENCH-NEW (RB4011, ROS 7.19.5)
+# ether3 -> DUT BENCH-712 (RB4011, ROS 7.20.7) ether3, direct cable, nothing else on the link.
+# Tools: tools/bench/tg-meter.rsc (traffic-generator, ~5 s at 10k pps, counter deltas at both ends +
+# monitor-traffic mid-run), tools/bench/bt-meter.rsc (UDP btest 10 s, throttle set for 10k pps at the IP
+# packet), RouterOS sniffer on the DUT (rx for traffic-gen frames on ether3, tx for btest on ether2).
+# Values are bytes per packet (delta bytes / delta packets). f = Ethernet frame size INCLUDING FCS.
+#
+# Traffic generator. if = /interface tx-byte|rx-byte, drv = ethernet driver-*-byte, sw = switch-chip
+# tx-bytes|rx-bytes per unicast frame, mon = monitor-traffic bits/s / packets/s / 8.
+M untagged size=60 gen: pkts=50731 if=64 drv=60 sw=64 mon=63
+  dut: pkts=50731 if=64 drv=60 sw=64 mon=63 monpps=10001
+M untagged size=508 gen: pkts=50881 if=512 drv=508 sw=512 mon=512
+  dut: pkts=50881 if=512 drv=508 sw=512 mon=512 monpps=10065
+M untagged size=1514 gen: pkts=51009 if=1518 drv=1514 sw=1518 mon=1518
+  dut: pkts=51009 if=1518 drv=1514 sw=1518 mon=1517 monpps=9996
+M vlan661 size=64 gen: pkts=50883 if=68 drv=64 sw=68 mon=68
+  dut: pkts=50883 if=68 drv=64 sw=68 mon=68 monpps=10012
+M vlan661 size=508 gen: pkts=50909 if=512 drv=508 sw=512 mon=512
+  dut: pkts=50909 if=512 drv=508 sw=512 mon=512 monpps=9935
+M vlan661 size=1514 gen: pkts=50912 if=1518 drv=1514 sw=1518 mon=1518
+  dut: pkts=50912 if=1518 drv=1514 sw=1518 mon=1517 monpps=10036
+# (mon 63/1517 = sampling rounding. Packet counts identical at both ends in every run.)
+#
+# btest, UDP, direction=transmit, throttle = S x 8 x 10000 bps.
+BT size=52 throttle=4160000 txavg=1921416 cb=12 gen: pkts=109961 if=70
+  dut: pkts=109961 if=70 drv=66
+BT size=1500 throttle=120000000 txavg=117762352 cb=12 gen: pkts=109951 if=1517
+  dut: pkts=109951 if=1517 drv=1513
+# ~10,000 pps achieved => throttle meters the IP packet (S). txavg / 8 / 10000 = 24.0 and 1472.0 B =>
+# tx-total-average counts the UDP payload (S - 28). if 70 = S + 18 (frame with FCS). 1517/1513 rather than
+# 1518/1514: btest's small TCP control packets on the same link pull the average down.
+#
+# Packet capture (DUT sniffer; size = frame as captured, i.e. WITHOUT FCS):
+PKT tg-untag-64    size=60   vlan=    proto=udp ipsize=46   iphdr=20   (14 hdr + 46 IP)
+PKT tg-untag-1518  size=1514 vlan=    proto=udp ipsize=1500 iphdr=20   (14 + 1500)
+PKT tg-vlan-68     size=64   vlan=661 proto=udp ipsize=46   iphdr=20   (14 + 4 tag + 46)
+PKT tg-vlan-1518   size=1514 vlan=661 proto=udp ipsize=1496 iphdr=20   (14 + 4 + 1496)
+PKT btest size=52   size=66  proto=udp ipsize=52   iphdr=20  udp 192.168.78.2:2277 -> bandwidth-server
+PKT btest size=1500 size=1514 proto=udp ipsize=1500 iphdr=20
+# 18 frames captured per traffic-gen case (5 pps x ~3.5 s), 29 btest packets.
+#
+# Conclusions (f = frame incl FCS):
+#   /interface bytes, switch-chip bytes, monitor-traffic (Winbox graphs) = f        (L2 with FCS)
+#   ethernet driver-*-byte, sniffer size, traffic-gen packet-size           = f - 4    (L2 without FCS)
+#   btest throttle (local/remote-tx-speed, *-udp-tx-size)                   = f - 18   (IP packet, L3)
+#   btest tx/rx-total-average                                               = f - 46   (UDP payload, L4)
+#   wire / line rate                                                        = f + 20   (preamble + IFG, L1)
+#   A VLAN tag is frame bytes in every L2 meter (+4 per tag).
+# Correction: an earlier chat statement (2026-10-01) that /interface counters exclude the FCS was wrong; only driver-*-byte does.
+# Sniffer gotchas: memory-limit is in bytes (2000 holds ~1 packet); a capture started over ssh-exec stops
+# when that session closes; a traffic-gen port swallows the generator's own receive traffic (ping fails).

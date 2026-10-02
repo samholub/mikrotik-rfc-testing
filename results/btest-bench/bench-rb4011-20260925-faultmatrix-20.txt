@@ -1,0 +1,184 @@
+﻿Bench fault matrix: master (rfc2544-extended.rsc @ 30ad142) vs design (b) prototype
+Date   : 2026-09-25
+Path   : BENCH-NEW RB4011 (ROS 7.19.5) ether2 <-> ether2 BENCH-712 RB4011 (ROS 7.20.7), direct cable, 0.3 ms
+Load   : 20 Mbps L1, direction=both, connection-count=20, 20 s trials, frames 70 / 512 / 1500 B
+Master : scratch copy, only testDuration 60s->20s, testDurationInt 60->20, btest password blanked (unused: typed IP)
+         m-port  = egress "ether2", VLAN ENTER (TX counted at port; its best case - the link is quiet)
+         m-enter = ENTER at egress (field behaviour on shared ports; TX from btest)
+Design b: scratch prototype (not in repo): 3 prompts, fwd% = tx-avg/((size-28)*8)/asked,
+         back% = rx-avg/((size-28)*8)/asked, either <95 or fwd >110 -> INCONCLUSIVE, else loss>SLA -> FAIL,
+         Sent = asked x (duration-1)
+Faults : raw prerouting drop on ether2 of the RECEIVING router, nth=N,1. Reverse = on BENCH-NEW, forward = on BENCH-712.
+         Dead return = drop all UDP arriving at BENCH-NEW. Rules removed after the run.
+
+--- UNIT CHECK (no faults, 20 s, per-flow raw counters on BENCH-NEW) ---
+setting  tx-avg      /(size*8)  /((size-28)*8)  asked pps  counted pps (sent/20s)
+  52     5,280,984    12,694     27,505          27,500     27,697
+  494   17,284,496     4,373      4,636           4,652      4,680
+ 1482   18,825,808     1,588      1,618           1,628      1,635
+=> against ROS 7.20.7, tx-total-average counts the UDP payload (size-28); throttle stays on the IP packet.
+
+--- TEST 1: 512 B (setting 494), 30 s, forward drop nth=10 at BENCH-712, reverse drop nth=5 at BENCH-NEW ---
+clean  run: tx-avg 17,294,064  (reverse-only nth=5 run; forward clean)
+test 1 run: tx-avg 15,565,264  rx-avg 13,798,816  lostsum 26,116  callbacks 31
+counters  : NEW sent 140,338 = 712 received 140,338, 712 dropped 14,034 (10.0%)
+            712 sent 140,132 = NEW received 140,132, NEW dropped 28,027 (20.0%)
+=> tx-avg fell by exactly 10.0%: tx-total-average is what the FAR END received.
+=> lostsum 26,116 = 93% of the 28,027 reverse drops (reverse-only run: 26,188 of 28,066, same 93%);
+   the 14,034 forward drops are absent. lost-packets counts ONLY loss into this router.
+   The 7% shortfall is the connecting second and tail outside the callback window.
+
+--- FAULT MATRIX: summary tables as printed ---
+=== CASE F0-clean RUN m-port ===
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      538539    0.00%  19.683 Mbps   100%          PASS
+  512 B            0       93562    0.00%  19.634 Mbps   105%          PASS
+  1500 B           0       31854    0.00%  19.628 Mbps    99%          PASS
+=== CASE F0-clean RUN m-enter ===
+  ! OUTBOUND 115% LIGHT: 12690 pps out vs 27354 back - this end weak OR
+  ! INCONCLUSIVE: only 46% of the rate was generated - load never offered
+  ! INCONCLUSIVE: only 93% of the rate was generated - load never offered
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      253800    0.00%  19.695 Mbps    46%  INCONCLUSIVE
+  512 B            0       87440    0.00%  19.636 Mbps    93%  INCONCLUSIVE
+  1500 B           0       31740    0.00%  19.613 Mbps    97%          PASS
+=== CASE F0-clean RUN b ===
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B             0      522481    0.00%   100%    99%          PASS
+  512 B            0       88388    0.00%    99%    99%          PASS
+  1500 B           0       30932    0.00%    99%    98%          PASS
+=== CASE F1-rev-0.05 RUN m-port ===
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B           258      542986    0.04%  19.706 Mbps   100%          PASS
+  512 B           43       89719    0.04%  19.646 Mbps    99%          PASS
+  1500 B          14       32017    0.04%  19.595 Mbps    99%          PASS
+=== CASE F1-rev-0.05 RUN m-enter ===
+  ! OUTBOUND 115% LIGHT: 12700 pps out vs 27337 back - this end weak OR
+  ! INCONCLUSIVE: only 46% of the rate was generated - load never offered
+  ! INCONCLUSIVE: only 94% of the rate was generated - load never offered
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B           259      254000    0.10%  19.680 Mbps    46%  INCONCLUSIVE
+  512 B           43       87500    0.04%  19.628 Mbps    94%  INCONCLUSIVE
+  1500 B          15       31780    0.04%  19.587 Mbps    97%          PASS
+=== CASE F1-rev-0.05 RUN b ===
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B           259      522481    0.04%    99%    99%          PASS
+  512 B           43       88388    0.04%    99%    99%          PASS
+  1500 B          14       30932    0.04%    99%    99%          PASS
+=== CASE F2-rev-0.20 RUN m-port ===
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B          1034      537290    0.19%  19.657 Mbps   100%          FAIL
+  512 B          172       93344    0.18%  19.596 Mbps   105%          FAIL
+  1500 B          57       31867    0.17%  19.557 Mbps    99%          FAIL
+=== CASE F2-rev-0.20 RUN m-enter ===
+  ! OUTBOUND 115% LIGHT: 12691 pps out vs 27308 back - this end weak OR
+  ! INCONCLUSIVE: only 46% of the rate was generated - load never offered
+  ! INCONCLUSIVE: only 94% of the rate was generated - load never offered
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B          1036      253820    0.40%  19.661 Mbps    46%  INCONCLUSIVE
+  512 B          171       87520    0.19%  19.612 Mbps    94%  INCONCLUSIVE
+  1500 B          56       31780    0.17%  19.574 Mbps    97%          FAIL
+=== CASE F2-rev-0.20 RUN b ===
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B          1035      522481    0.19%   100%    99%          FAIL
+  512 B          171       88388    0.19%    99%    99%          FAIL
+  1500 B          56       30932    0.18%    99%    98%          FAIL
+=== CASE F3-fwd-0.05 RUN m-port ===
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      548580    0.00%  19.702 Mbps   104%          PASS
+  512 B            0       90271    0.00%  19.646 Mbps    99%          PASS
+  1500 B           0       32446    0.00%  19.629 Mbps   104%          PASS
+=== CASE F3-fwd-0.05 RUN m-enter ===
+  ! OUTBOUND 115% LIGHT: 12685 pps out vs 27388 back - this end weak OR
+  ! INCONCLUSIVE: only 46% of the rate was generated - load never offered
+  ! INCONCLUSIVE: only 93% of the rate was generated - load never offered
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      253700    0.00%  19.717 Mbps    46%  INCONCLUSIVE
+  512 B            0       87440    0.00%  19.639 Mbps    93%  INCONCLUSIVE
+  1500 B           0       31720    0.00%  19.589 Mbps    97%          PASS
+=== CASE F3-fwd-0.05 RUN b ===
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B             0      522481    0.00%    99%    99%          PASS
+  512 B            0       88388    0.00%    99%    99%          PASS
+  1500 B           0       30932    0.00%    99%    98%          PASS
+=== CASE F4-fwd-0.20 RUN m-port ===
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      552179    0.00%  19.698 Mbps   105%          PASS
+  512 B            0       90887    0.00%  19.652 Mbps    99%          PASS
+  1500 B           0       32693    0.00%  19.611 Mbps   104%          PASS
+=== CASE F4-fwd-0.20 RUN m-enter ===
+  ! OUTBOUND 116% LIGHT: 12662 pps out vs 27403 back - this end weak OR
+  ! INCONCLUSIVE: only 46% of the rate was generated - load never offered
+  ! INCONCLUSIVE: only 93% of the rate was generated - load never offered
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      253240    0.00%  19.728 Mbps    46%  INCONCLUSIVE
+  512 B            0       87260    0.00%  19.631 Mbps    93%  INCONCLUSIVE
+  1500 B           0       31660    0.00%  19.587 Mbps    97%          PASS
+=== CASE F4-fwd-0.20 RUN b ===
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B             0      522481    0.00%    99%    99%          PASS
+  512 B            0       88388    0.00%    99%    99%          PASS
+  1500 B           0       30932    0.00%    99%    98%          PASS
+=== CASE F5-dead-return RUN m-port ===
+  ! RETURN 100% LIGHT: 0 pps back vs 27509 out - far end weak OR
+  ! RETURN 100% LIGHT: 0 pps back vs 4642 out - far end weak OR
+  ! RETURN 100% LIGHT: 0 pps back vs 1622 out - far end weak OR
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      540209    0.00%   0.000 Mbps   100%          PASS
+  512 B            0       89295    0.00%   0.000 Mbps    99%          PASS
+  1500 B           0       32015    0.00%   0.000 Mbps    99%          PASS
+=== CASE F5-dead-return RUN m-enter ===
+  ! RETURN 100% LIGHT: 0 pps back vs 12687 out - far end weak OR
+  ! INCONCLUSIVE: only 46% of the rate was generated - load never offered
+  ! RETURN 100% LIGHT: 0 pps back vs 4373 out - far end weak OR
+  ! INCONCLUSIVE: only 94% of the rate was generated - load never offered
+  ! RETURN 100% LIGHT: 0 pps back vs 1587 out - far end weak OR
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      253740    0.00%   0.000 Mbps    46%  INCONCLUSIVE
+  512 B            0       87460    0.00%   0.000 Mbps    94%  INCONCLUSIVE
+  1500 B           0       31740    0.00%   0.000 Mbps    97%          PASS
+=== CASE F5-dead-return RUN b ===
+  ! INCONCLUSIVE: 0% came back - return path dropping or far end short
+  ! INCONCLUSIVE: 0% came back - return path dropping or far end short
+  ! INCONCLUSIVE: 0% came back - return path dropping or far end short
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B             0      522481    0.00%   100%     0%  INCONCLUSIVE
+  512 B            0       88388    0.00%    99%     0%  INCONCLUSIVE
+  1500 B           0       30932    0.00%    99%     0%  INCONCLUSIVE
+=== CASE F6-fwd-10 RUN m-port ===
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      548707    0.00%  19.717 Mbps   105%          PASS
+  512 B            0       90335    0.00%  19.646 Mbps    99%          PASS
+  1500 B           0       32450    0.00%  19.574 Mbps   104%          PASS
+=== CASE F6-fwd-10 RUN m-enter ===
+  ! OUTBOUND 139% LIGHT: 11426 pps out vs 27367 back - this end weak OR
+  ! INCONCLUSIVE: only 41% of the rate was generated - load never offered
+  ! OUTBOUND 17% LIGHT: 3937 pps out vs 4618 back - this end weak OR
+  ! INCONCLUSIVE: only 84% of the rate was generated - load never offered
+  ! OUTBOUND 12% LIGHT: 1428 pps out vs 1610 back - this end weak OR
+  ! INCONCLUSIVE: only 87% of the rate was generated - load never offered
+  Frame         Lost        Sent    Loss%        L1 RX   Gen%        Result
+  70 B             0      228520    0.00%  19.702 Mbps    41%  INCONCLUSIVE
+  512 B            0       78740    0.00%  19.656 Mbps    84%  INCONCLUSIVE
+  1500 B           0       28560    0.00%  19.578 Mbps    87%  INCONCLUSIVE
+=== CASE F6-fwd-10 RUN b ===
+  ! INCONCLUSIVE: far end received 89% - forward path dropping or this end short
+  ! INCONCLUSIVE: far end received 89% - forward path dropping or this end short
+  ! INCONCLUSIVE: far end received 89% - forward path dropping or this end short
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B             0      522481    0.00%    89%    99%  INCONCLUSIVE
+  512 B            0       88388    0.00%    89%    99%  INCONCLUSIVE
+  1500 B           0       30932    0.00%    89%    98%  INCONCLUSIVE
+
+--- SCORE (a run passes a case only if all three sizes get the correct verdict) ---
+Correct: clean/0.05% -> PASS; 0.20% -> FAIL; dead return or 10% forward -> anything but PASS.
+case            expected   m-port   m-enter   design b
+F0 clean        PASS       ok       WRONG     ok
+F1 rev 0.05%    PASS       ok       WRONG     ok
+F2 rev 0.20%    FAIL       ok       WRONG     ok
+F3 fwd 0.05%    PASS       ok       WRONG     ok
+F4 fwd 0.20%    FAIL       WRONG    WRONG     WRONG
+F5 dead return  not PASS   WRONG    WRONG     ok
+F6 fwd 10%      not PASS   WRONG    ok*       ok
+                           4/7      1/7       6/7
+* m-enter F6 is INCONCLUSIVE at every size only because the unit error and the loss stack.

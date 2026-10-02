@@ -1,0 +1,32 @@
+# Field handoff build (from a sanitized /export of a standard L2 site, RB4011, ROS 7.21.5), reproduced on
+# the bench DUT BENCH-712 (ROS 7.20.7). Export itself not stored (script source in it carries a password).
+# Field: ether1 WAN l2mtu/mtu 2026; vlan661 on ether1 mtu 2022; bridge1 (mtu 2022, protocol-mode none)
+#        ports vlan661 + sfp-sfpplus1 (hw=no, client handoff, l2mtu/mtu 2022). No forward firewall rules.
+# Bench: ether4 = vendor (ether1), ether3 = client (copper standing in for the SFP+ cage; both CPU paths),
+#        t-v661 on ether4, bridge t-br ports t-v661 + ether3 hw=no, static hosts. Generator BENCH-NEW.
+#
+# Functional, 1000 pps x 3 s (tx/rx): all three paths pass and the generator counts them.
+FN sqa (client untagged -> vendor, arrives tagged 661)          tx=1994 rx=1994
+FN sqc (client tagged VLAN 100 -> vendor, arrives 661+100 QinQ) tx=2000 rx=2000
+FN sqr (vendor tagged 661 -> client, arrives untagged)          tx=1999 rx=1999
+#
+# MTU edges with the export's MTUs (packet-size excludes FCS):
+MTU sqa size=2036 untagged L3 2022             tx=1996 rx=1996
+MTU sqa size=2040 untagged L3 2026 (over)      tx=1999 rx=0
+MTU sqc size=2036 cust-tagged L3 2018          tx=2000 rx=2000
+MTU sqc size=2040 cust-tagged L3 2022          tx=2000 rx=0      <- customer-tagged full-size frames dropped
+MTU sqr size=2040 vendor 661 L3 2022           tx=1999 rx=1999
+MTU sqr size=2044 vendor 661 L3 2026 (over)    tx=2000 rx=0
+# No drop counter moved on the DUT (t-v661 tx-drop 0).
+#
+# Locating it:
+FIX1 client l2mtu 2026, v661 2022:                 tx=1993 rx=0
+FIX2 + vendor l2mtu 2030, v661 mtu 2026:           tx=1997 rx=1997
+FIX3 client back to l2mtu 2022, v661 2026:         tx=1999 rx=1999
+FIX3 reverse vendor 661 L3 2022:                   tx=1999 rx=1999
+# Result: the vendor-side VLAN interface MTU limits customer-tagged frames. Fix = vlan661 mtu 2026 and the
+# vendor port l2mtu >= 2030 (client port unchanged). The vendor circuit must carry the 4 B larger
+# double-tagged frame too.
+#
+# REFINED 2026-10-02 (...-mtu-standard.txt): only the vendor port l2mtu matters (customer MTU + 8). The VLAN
+# interface mtu setting does not apply to bridged frames, so "vlan661 mtu 2026" above was not needed.

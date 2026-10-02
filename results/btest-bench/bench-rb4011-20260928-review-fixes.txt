@@ -1,0 +1,93 @@
+Review fixes: per-port queue drops, reasons on INCONCLUSIVE, and the final-callback question
+Date   : 2026-09-28
+Path   : BENCH-NEW RB4011 (ROS 7.19.5) -> BENCH-712 RB4011 (ROS 7.20.7), direct cable
+Script : rfc-test.rsc after 75d8348 with: tx-queue-drop printed per port by name;
+         FAIL reason lines also printed on INCONCLUSIVE; latMin removed; comments fixed.
+         Bench copy had the btest password blanked (typed-IP path).
+Faults : raw prerouting drop nth=500 of UDP on BENCH-NEW ether2 (return path);
+         200 Mbps at 70 B (CPU overload); 1100 Mbps at 1500 B (ether2 overdriven, real queue drops).
+Result : 4 of 4 as expected. Clean and 0.20% return match the 2026-09-25 matrix
+         (PASS all; FAIL all at 0.17-0.21%). Overload gives INCONCLUSIVE and now names
+         what would have failed. Queue drops are named by port with the count.
+         Rules and scripts removed afterwards.
+Probe  : per-callback lost-packets with nth=500 on the return path, 70 B, 10 s:
+         the final "done testing" block is its own interval, not a repeat - the review's
+         double-count concern does not hold. Sum 485 vs 548 dropped by the firewall.
+
+=== CASE C3 clean, all sizes, 20 Mbps ===
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00   100     98    32          PASS
+  128 B          0     150498    0.00    99     98    21          PASS
+  256 B          0      80703    0.00    99     98    15          PASS
+  512 B          0      41868    0.00    99     98     9          PASS
+  1024 B         0      21330    0.00    99     98     7          PASS
+  1500 B         0      14652    0.00    99     98     5          PASS
+  PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
+
+=== CASE R3 return 0.20% (nth=500), all sizes, 20 Mbps ===
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B         483     247491    0.19   100     98    33          FAIL
+  128 B        293     150498    0.19    99     98    23          FAIL
+  256 B        173      80703    0.21    99     98    14          FAIL
+  512 B         78      41868    0.18    99     98    10          FAIL
+  1024 B        37      21330    0.17    99     98     6          FAIL
+  1500 B        27      14652    0.18    99     98     5          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+First block of R3:
+--- 70 B frame | 20 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Arrived : far end got 100% | 98% came back
+  Rate    : 19.808 Mbps out | 19.545 Mbps back (L1)
+  Lost    : 483 of 247491 coming back (0.19%), SLA 0.10%
+  CPU     : this router 33% | far end 32%
+  Latency : 0.21 avg, 0.29 max ms
+  Note    : loss is counted coming back; outbound only for big loss
+  Result  : FAIL
+  ! Loss coming back is over the SLA
+  ! Confirm from the other end before escalating
+
+=== CASE I3 (70 B at 200 Mbps: both CPUs at 100%) ===
+--- 70 B frame | 200 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Arrived : far end got 78% | 72% came back
+  Rate    : 156.206 Mbps out | 143.725 Mbps back (L1)
+  Lost    : 5968 of 2474991 coming back (0.24%), SLA 0.10%
+  CPU     : this router 100% | far end 100%
+  Latency : 1.96 avg, 3.70 max ms
+  Note    : loss is counted coming back; outbound only for big loss
+  Result  : INCONCLUSIVE
+  ! Only 78% arrived at the far end
+  ! Only 72% came back
+  ! Loss coming back is over the SLA
+  ! A router reached 100% CPU - that can cause this loss.
+  ! Lower the speed or skip the small frames, then re-run
+  ! This router dropped frames in its own queues: ether2 2301
+
+=== CASE Q3 (ether2 overdriven: 1100 Mbps asked on a 1 Gbps port) ===
+--- 1500 B frame | 1100 Mbps | Brief ---
+  Test    : BENCH-NEW -> 192.168.78.2
+  Arrived : far end got 91% | 90% came back
+  Rate    : 998.190 Mbps out | 989.118 Mbps back (L1)
+  Lost    : 405158 of 805995 coming back (50.26%), SLA 0.10%
+  CPU     : this router 76% | far end 80%
+  Latency : 16.78 avg, 20.59 max ms
+  Note    : loss is counted coming back; outbound only for big loss
+  Result  : FAIL
+  ! Only 91% arrived at the far end
+  ! Only 90% came back
+  ! Loss coming back is over the SLA
+  ! Confirm from the other end before escalating
+  ! This router dropped frames in its own queues: ether2 464478
+=== PROBE per-callback lost-packets ===
+CB connecting lost=0
+CB running lost=0
+CB running lost=44
+CB running lost=55
+CB running lost=55
+CB running lost=56
+CB running lost=55
+CB running lost=55
+CB running lost=55
+CB running lost=55
+CB done testing lost=55
+firewall t-drop: 548 packets dropped

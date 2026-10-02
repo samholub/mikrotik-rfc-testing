@@ -1,0 +1,119 @@
+# RB4011 capacity sweep - D: routed, no conntrack
+# Date 2026-09-30. Generator BENCH-NEW (RB4011iGS+, ROS 7.19.5), /tool traffic-generator, ether3 out,
+# back on ether4. DUT BENCH-712 (RB4011iGS+, ROS 7.20.7). Flows: 1 (udp 5000->5001) and 256 (udp src 1000-1255)
+# DUT config: ether3 10.99.3.1/24, ether4 10.99.4.1/24, static ARP; filter accept forward from 10.99.3.0/24 placed first (11 filter rules total), raw notrack for 10.99.3.0/24; no bridge ports; ipv4-fast-path-active=false
+# Method: tools/bench/tg-sweep.rsc. Try line rate; else binary search to 1% of line, 10 s trials;
+# confirm 60 s (step down 2% on fail). Pass = loss < 1000 ppm (0.1%) AND sent >= 99% of asked.
+# f = frame incl FCS (packet-size f-4). cpu = generator/DUT peak per-core %. ppm = lost per million.
+# Loss includes packets in flight when the trial stops (~latency x pps). With 256 flows, ooo counts
+# reordering ACROSS flows (one sequence for the whole stream); per-flow order is not measured.
+# Generator single-flow ceiling (config A): ~739k pps @64, ~526k @128, ~382k @256, line rate >= 512.
+FW filter=11 raw=1 bridgeports=0 fastpath=false
+  t sz=60 ask=1488095 sent=1260171 lost=9353005 ppm=824667 cpu=100/100 short=true
+  t sz=60 ask=744047 sent=743912 lost=4709009 ppm=703340 cpu=100/100 short=false
+  t sz=60 ask=372023 sent=371964 lost=1354262 ppm=404537 cpu=100/100 short=false
+  t sz=60 ask=186011 sent=185983 lost=12 ppm=7 cpu=100/100 short=false
+  t sz=60 ask=279017 sent=278974 lost=505375 ppm=201282 cpu=100/100 short=false
+  t sz=60 ask=232514 sent=232518 lost=84530 ppm=40393 cpu=100/100 short=false
+  t sz=60 ask=209262 sent=209257 lost=6 ppm=3 cpu=97/100 short=false
+  t sz=60 ask=220888 sent=220862 lost=633 ppm=318 cpu=98/100 short=false
+  t sz=60 ask=220888 sent=220890 lost=1201 ppm=90 cpu=100/100 short=false
+CAP D-routed-1flow f=64 pps=220890 line%=14 mbps=113 ok=true
+    ppm=90 ooo=0 lat=185.us/5.73ms jit=5.68ms cpu=100/100
+  t sz=508 ask=234962 sent=234248 lost=117077 ppm=55533 cpu=99/100 short=false
+  t sz=508 ask=117481 sent=117462 lost=1813 ppm=1714 cpu=98/93 short=false
+  t sz=508 ask=58740 sent=58731 lost=5 ppm=9 cpu=85/80 short=false
+  t sz=508 ask=88110 sent=88099 lost=2 ppm=2 cpu=77/84 short=false
+  t sz=508 ask=102795 sent=102775 lost=212 ppm=229 cpu=81/87 short=false
+  t sz=508 ask=110138 sent=110127 lost=1748 ppm=1763 cpu=85/96 short=false
+  t sz=508 ask=106466 sent=106452 lost=614 ppm=640 cpu=86/93 short=false
+  t sz=508 ask=108302 sent=108290 lost=466 ppm=478 cpu=86/91 short=false
+  t sz=508 ask=108302 sent=108297 lost=7258 ppm=1116 cpu=88/93 short=false
+  t sz=508 ask=106135 sent=106141 lost=5750 ppm=902 cpu=87/92 short=false
+CAP D-routed-1flow f=512 pps=106141 line%=45 mbps=434 ok=true
+    ppm=902 ooo=0 lat=162.us/3.99ms jit=3.94ms cpu=87/92
+  t sz=60 ask=1488095 sent=1013074 lost=2079505 ppm=228074 cpu=100/100 short=true
+  t sz=60 ask=744047 sent=743897 lost=108983 ppm=16278 cpu=100/100 short=false
+  t sz=60 ask=372023 sent=371965 lost=69 ppm=20 cpu=100/90 short=false
+  t sz=60 ask=558035 sent=557946 lost=6417 ppm=1277 cpu=100/96 short=false
+  t sz=60 ask=465029 sent=465044 lost=630 ppm=150 cpu=100/96 short=false
+  t sz=60 ask=511532 sent=511690 lost=87 ppm=18 cpu=100/97 short=false
+  t sz=60 ask=534783 sent=534961 lost=3331 ppm=691 cpu=100/98 short=false
+  t sz=60 ask=546409 sent=546333 lost=3468 ppm=705 cpu=100/99 short=false
+  t sz=60 ask=546409 sent=546434 lost=6298 ppm=192 cpu=100/99 short=false
+CAP D-routed-256flow f=64 pps=546434 line%=36 mbps=279 ok=true
+    ppm=192 ooo=23236294 lat=97.2us/5.95ms jit=5.92ms cpu=100/99
+  t sz=508 ask=234962 sent=234900 lost=521 ppm=246 cpu=100/82 short=false
+  t sz=508 ask=234962 sent=234956 lost=369 ppm=26 cpu=100/84 short=false
+CAP D-routed-256flow f=512 pps=234956 line%=99 mbps=962 ok=true
+    ppm=26 ooo=7464605 lat=1.10ms/5.54ms jit=5.42ms cpu=100/84
+
+[exited with code 0]
+  t sz=124 ask=844594 sent=844442 lost=5608952 ppm=738021 cpu=100/100 short=false
+  t sz=124 ask=422297 sent=422228 lost=1799220 ppm=473471 cpu=100/100 short=false
+  t sz=124 ask=211148 sent=211114 lost=865 ppm=455 cpu=100/100 short=false
+  t sz=124 ask=316722 sent=316708 lost=846189 ppm=296869 cpu=100/100 short=false
+  t sz=124 ask=263935 sent=263949 lost=372986 ppm=157010 cpu=100/100 short=false
+  t sz=124 ask=237541 sent=237446 lost=131930 ppm=61735 cpu=99/100 short=false
+  t sz=124 ask=224344 sent=224308 lost=42848 ppm=21224 cpu=98/100 short=false
+  t sz=124 ask=217746 sent=217735 lost=201 ppm=102 cpu=96/100 short=false
+  t sz=124 ask=217746 sent=217763 lost=727 ppm=55 cpu=97/100 short=false
+CAP D-routed-1flow f=128 pps=217763 line%=25 mbps=222 ok=true
+    ppm=55 ooo=0 lat=146.us/5.53ms jit=5.48ms cpu=97/100
+  t sz=252 ask=452898 sent=452758 lost=2072669 ppm=508652 cpu=99/100 short=false
+  t sz=252 ask=226449 sent=226414 lost=32355 ppm=15877 cpu=99/100 short=false
+  t sz=252 ask=113224 sent=113201 lost=523 ppm=513 cpu=99/100 short=false
+  t sz=252 ask=169836 sent=169810 lost=1540 ppm=1007 cpu=98/97 short=false
+  t sz=252 ask=141530 sent=141513 lost=126 ppm=98 cpu=85/96 short=false
+  t sz=252 ask=155683 sent=155664 lost=4876 ppm=3480 cpu=91/97 short=false
+  t sz=252 ask=148606 sent=148583 lost=2170 ppm=1622 cpu=90/96 short=false
+  t sz=252 ask=145068 sent=144967 lost=995 ppm=762 cpu=86/98 short=false
+  t sz=252 ask=145068 sent=145069 lost=8551 ppm=982 cpu=88/97 short=false
+CAP D-routed-1flow f=256 pps=145069 line%=32 mbps=297 ok=true
+    ppm=982 ooo=0 lat=110.us/5.68ms jit=5.64ms cpu=88/97
+  t sz=1020 ask=119731 sent=119696 lost=382 ppm=354 cpu=90/100 short=false
+  t sz=1020 ask=119731 sent=119720 lost=610 ppm=84 cpu=91/100 short=false
+CAP D-routed-1flow f=1024 pps=119720 line%=99 mbps=980 ok=true
+    ppm=84 ooo=0 lat=2.36ms/3.76ms jit=3.64ms cpu=91/100
+  t sz=1276 ask=96153 sent=96128 lost=165 ppm=190 cpu=82/100 short=false
+  t sz=1276 ask=96153 sent=96145 lost=257 ppm=44 cpu=84/100 short=false
+CAP D-routed-1flow f=1280 pps=96145 line%=99 mbps=984 ok=true
+    ppm=44 ooo=0 lat=2.46ms/3.29ms jit=3.17ms cpu=84/100
+  t sz=1514 ask=81274 sent=81189 lost=165 ppm=225 cpu=79/100 short=false
+  t sz=1514 ask=81274 sent=81272 lost=246 ppm=50 cpu=81/100 short=false
+CAP D-routed-1flow f=1518 pps=81272 line%=99 mbps=986 ok=true
+    ppm=50 ooo=0 lat=2.53ms/3.52ms jit=3.37ms cpu=81/100
+  t sz=124 ask=844594 sent=778826 lost=224791 ppm=32069 cpu=100/97 short=true
+  t sz=124 ask=422297 sent=422205 lost=3894 ppm=1024 cpu=100/91 short=false
+  t sz=124 ask=211148 sent=211111 lost=0 ppm=0 cpu=100/83 short=false
+  t sz=124 ask=316722 sent=316481 lost=1624 ppm=570 cpu=100/82 short=false
+  t sz=124 ask=369509 sent=369491 lost=20 ppm=6 cpu=100/92 short=false
+  t sz=124 ask=395903 sent=395975 lost=17582 ppm=4933 cpu=100/90 short=false
+  t sz=124 ask=382706 sent=382788 lost=23 ppm=6 cpu=100/88 short=false
+  t sz=124 ask=389304 sent=389346 lost=1294 ppm=369 cpu=100/89 short=false
+  t sz=124 ask=389304 sent=389398 lost=3408 ppm=145 cpu=100/93 short=false
+CAP D-routed-256flow f=128 pps=389398 line%=46 mbps=398 ok=true
+    ppm=145 ooo=14579297 lat=87.1us/7.21ms jit=7.19ms cpu=100/93
+  t sz=252 ask=452898 sent=452691 lost=6727 ppm=1651 cpu=97/99 short=false
+  t sz=252 ask=226449 sent=226390 lost=22 ppm=10 cpu=99/98 short=false
+  t sz=252 ask=339673 sent=339603 lost=1 ppm=0 cpu=100/87 short=false
+  t sz=252 ask=396285 sent=396291 lost=517 ppm=144 cpu=100/95 short=false
+  t sz=252 ask=424591 sent=424559 lost=632 ppm=165 cpu=100/96 short=false
+  t sz=252 ask=438744 sent=438719 lost=401 ppm=101 cpu=100/99 short=false
+  t sz=252 ask=445821 sent=445758 lost=1758 ppm=438 cpu=100/100 short=false
+  t sz=252 ask=449359 sent=449366 lost=857 ppm=211 cpu=100/100 short=false
+  t sz=252 ask=449359 sent=449427 lost=14620 ppm=533 cpu=100/100 short=false
+CAP D-routed-256flow f=256 pps=449427 line%=99 mbps=920 ok=true
+    ppm=533 ooo=17073853 lat=283.us/7.70ms jit=7.65ms cpu=100/100
+  t sz=1020 ask=119731 sent=119701 lost=161 ppm=149 cpu=100/54 short=false
+  t sz=1020 ask=119731 sent=119728 lost=103 ppm=14 cpu=87/58 short=false
+CAP D-routed-256flow f=1024 pps=119728 line%=99 mbps=980 ok=true
+    ppm=14 ooo=1131105 lat=941.us/3.35ms jit=3.24ms cpu=87/58
+  t sz=1276 ask=96153 sent=96128 lost=89 ppm=102 cpu=74/43 short=false
+  t sz=1276 ask=96153 sent=96151 lost=80 ppm=13 cpu=76/51 short=false
+CAP D-routed-256flow f=1280 pps=96151 line%=99 mbps=984 ok=true
+    ppm=13 ooo=607891 lat=1.02ms/4.39ms jit=4.29ms cpu=76/51
+  t sz=1514 ask=81274 sent=81253 lost=73 ppm=99 cpu=68/43 short=false
+  t sz=1514 ask=81274 sent=81265 lost=108 ppm=22 cpu=71/47 short=false
+CAP D-routed-256flow f=1518 pps=81265 line%=99 mbps=986 ok=true
+    ppm=22 ooo=663390 lat=1.15ms/5.28ms jit=5.15ms cpu=71/47

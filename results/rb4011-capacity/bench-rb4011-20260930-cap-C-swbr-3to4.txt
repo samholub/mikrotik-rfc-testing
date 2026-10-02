@@ -1,0 +1,63 @@
+# RB4011 capacity sweep - C: software bridge (hw=no), same switch chip
+# Date 2026-09-30. Generator BENCH-NEW (RB4011iGS+, ROS 7.19.5), /tool traffic-generator, one stream
+# (single flow), ether3 out, back on ether4. DUT BENCH-712 (RB4011iGS+, ROS 7.20.7).
+# DUT config: bridge t-br (protocol-mode=none) ether3+ether4 hw=no (hw-offload=false verified),
+# static bridge host for the receiving MAC.
+# Method: tools/bench/tg-sweep.rsc. Try line rate; else binary search to 1% of line, 10 s trials;
+# confirm 60 s (step down 2% on fail). Pass = loss < 1000 ppm (0.1%) AND sent >= 99% of asked.
+# f = frame incl FCS (packet-size f-4). cpu = generator/DUT peak per-core %. ppm = lost per million.
+# Loss includes packets in flight when the trial stops (~latency x pps).
+# Generator ceiling (config A): ~739k pps @64, ~526k @128, ~382k @256, line rate >= 512.
+PORT ether3 hw-offload=false
+PORT ether4 hw-offload=false
+  t sz=60 ask=1488095 sent=760952 lost=7569 ppm=1105 cpu=100/73 short=true
+  t sz=60 ask=744047 sent=743864 lost=0 ppm=0 cpu=100/66 short=false
+  t sz=60 ask=1116071 sent=761396 lost=0 ppm=0 cpu=100/66 short=true
+  t sz=60 ask=930059 sent=798964 lost=0 ppm=0 cpu=100/66 short=true
+  t sz=60 ask=837053 sent=756814 lost=0 ppm=0 cpu=100/65 short=true
+  t sz=60 ask=790550 sent=789736 lost=0 ppm=0 cpu=100/65 short=false
+  t sz=60 ask=813801 sent=751651 lost=64 ppm=9 cpu=100/62 short=true
+  t sz=60 ask=802175 sent=791160 lost=64 ppm=8 cpu=100/61 short=true
+  t sz=60 ask=790550 sent=773939 lost=7526 ppm=162 cpu=100/72 short=true
+  t sz=60 ask=774739 sent=775039 lost=2740 ppm=58 cpu=100/69 short=false
+CAP C-swbr-3to4 f=64 pps=775039 line%=52 mbps=396 ok=true
+    ppm=58 ooo=0 lat=115.us/1.73ms jit=1.67ms cpu=100/69
+  t sz=124 ask=844594 sent=509949 lost=64 ppm=13 cpu=100/71 short=true
+  t sz=124 ask=422297 sent=422232 lost=965 ppm=253 cpu=100/57 short=false
+  t sz=124 ask=633445 sent=511066 lost=64 ppm=13 cpu=100/76 short=true
+  t sz=124 ask=527871 sent=505436 lost=0 ppm=0 cpu=100/72 short=true
+  t sz=124 ask=475084 sent=475207 lost=0 ppm=0 cpu=100/71 short=false
+  t sz=124 ask=501477 sent=501402 lost=64 ppm=14 cpu=100/69 short=false
+  t sz=124 ask=514674 sent=509061 lost=0 ppm=0 cpu=100/69 short=true
+  t sz=124 ask=508075 sent=508021 lost=64 ppm=13 cpu=100/72 short=false
+  t sz=124 ask=508075 sent=508056 lost=124 ppm=4 cpu=100/73 short=false
+CAP C-swbr-3to4 f=128 pps=508056 line%=60 mbps=520 ok=true
+    ppm=4 ooo=0 lat=129.us/979.us jit=914.us cpu=100/73
+  t sz=252 ask=452898 sent=328327 lost=80 ppm=27 cpu=100/74 short=true
+  t sz=252 ask=226449 sent=226410 lost=0 ppm=0 cpu=100/70 short=false
+  t sz=252 ask=339673 sent=339615 lost=73 ppm=23 cpu=100/79 short=false
+  t sz=252 ask=396285 sent=326627 lost=113 ppm=38 cpu=100/82 short=true
+  t sz=252 ask=367979 sent=367986 lost=355 ppm=107 cpu=100/87 short=false
+  t sz=252 ask=382132 sent=330140 lost=0 ppm=0 cpu=100/85 short=true
+  t sz=252 ask=375055 sent=375007 lost=470 ppm=139 cpu=100/84 short=false
+  t sz=252 ask=378593 sent=375628 lost=1287 ppm=380 cpu=100/88 short=false
+  t sz=252 ask=378593 sent=372323 lost=7171 ppm=321 cpu=100/93 short=true
+  t sz=252 ask=371021 sent=371043 lost=906 ppm=40 cpu=100/88 short=false
+CAP C-swbr-3to4 f=256 pps=371043 line%=81 mbps=759 ok=true
+    ppm=40 ooo=0 lat=237.us/2.80ms jit=2.73ms cpu=100/88
+  t sz=508 ask=234962 sent=234230 lost=290 ppm=137 cpu=100/100 short=false
+  t sz=508 ask=234962 sent=234450 lost=276 ppm=19 cpu=100/100 short=false
+CAP C-swbr-3to4 f=512 pps=234450 line%=99 mbps=960 ok=true
+    ppm=19 ooo=0 lat=1.37ms/1.92ms jit=1.83ms cpu=100/100
+  t sz=1020 ask=119731 sent=119641 lost=268 ppm=248 cpu=100/71 short=false
+  t sz=1020 ask=119731 sent=119712 lost=275 ppm=38 cpu=96/77 short=false
+CAP C-swbr-3to4 f=1024 pps=119712 line%=99 mbps=980 ok=true
+    ppm=38 ooo=0 lat=2.37ms/3.16ms jit=3.05ms cpu=96/77
+  t sz=1276 ask=96153 sent=96124 lost=215 ppm=248 cpu=84/67 short=false
+  t sz=1276 ask=96153 sent=96133 lost=248 ppm=42 cpu=88/62 short=false
+CAP C-swbr-3to4 f=1280 pps=96133 line%=99 mbps=984 ok=true
+    ppm=42 ooo=0 lat=2.86ms/4.24ms jit=4.09ms cpu=88/62
+  t sz=1514 ask=81274 sent=81253 lost=218 ppm=298 cpu=77/55 short=false
+  t sz=1514 ask=81274 sent=81262 lost=258 ppm=52 cpu=83/58 short=false
+CAP C-swbr-3to4 f=1518 pps=81262 line%=99 mbps=986 ok=true
+    ppm=52 ooo=0 lat=3.11ms/4.51ms jit=4.39ms cpu=83/58

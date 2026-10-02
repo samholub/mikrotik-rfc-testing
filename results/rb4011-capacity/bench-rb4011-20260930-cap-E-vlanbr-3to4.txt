@@ -1,0 +1,62 @@
+# RB4011 capacity sweep - E: bridge VLAN filtering, same switch chip
+# Date 2026-09-30. Generator BENCH-NEW (RB4011iGS+, ROS 7.19.5), /tool traffic-generator, ether3 out,
+# back on ether4. DUT BENCH-712 (RB4011iGS+, ROS 7.20.7). Flows: 1
+# DUT config: bridge t-br vlan-filtering=yes protocol-mode=none, ether3+ether4 tagged VLAN 100, hw-offload=true on both, static hosts vid=100. Frames are tagged: f = untagged size + 4
+# Method: tools/bench/tg-sweep.rsc. Try line rate; else binary search to 1% of line, 10 s trials;
+# confirm 60 s (step down 2% on fail). Pass = loss < 1000 ppm (0.1%) AND sent >= 99% of asked.
+# f = frame incl FCS (packet-size f-4). cpu = generator/DUT peak per-core %. ppm = lost per million.
+# Loss includes packets in flight when the trial stops (~latency x pps). With 256 flows, ooo counts
+# reordering ACROSS flows (one sequence for the whole stream); per-flow order is not measured.
+# Generator single-flow ceiling (config A): ~739k pps @64, ~526k @128, ~382k @256, line rate >= 512.
+STATE E
+PORT ether3 hw-offload=true
+PORT ether4 hw-offload=true
+  t sz=64 ask=1420454 sent=707672 lost=64 ppm=10 cpu=100/6 short=true
+  t sz=64 ask=710227 sent=707646 lost=0 ppm=0 cpu=100/8 short=false
+  t sz=64 ask=1065340 sent=707420 lost=0 ppm=0 cpu=100/12 short=true
+  t sz=64 ask=887783 sent=707804 lost=64 ppm=10 cpu=100/9 short=true
+  t sz=64 ask=799005 sent=708563 lost=0 ppm=0 cpu=100/9 short=true
+  t sz=64 ask=754616 sent=707854 lost=0 ppm=0 cpu=100/8 short=true
+  t sz=64 ask=732421 sent=713294 lost=0 ppm=0 cpu=100/10 short=true
+  t sz=64 ask=721324 sent=708223 lost=0 ppm=0 cpu=100/9 short=true
+  t sz=64 ask=710227 sent=709837 lost=0 ppm=0 cpu=100/12 short=false
+CAP E-vlanbr-3to4 f=68 pps=709837 line%=49 mbps=386 ok=true
+    ppm=0 ooo=0 lat=94.7us/259.us jit=203.us cpu=100/12
+  t sz=128 ask=822368 sent=521718 lost=0 ppm=0 cpu=100/12 short=true
+  t sz=128 ask=411184 sent=411100 lost=0 ppm=0 cpu=100/9 short=false
+  t sz=128 ask=616776 sent=524803 lost=0 ppm=0 cpu=100/6 short=true
+  t sz=128 ask=513980 sent=507604 lost=0 ppm=0 cpu=100/9 short=true
+  t sz=128 ask=462582 sent=462672 lost=63 ppm=15 cpu=100/9 short=false
+  t sz=128 ask=488281 sent=488203 lost=0 ppm=0 cpu=100/8 short=false
+  t sz=128 ask=501130 sent=501170 lost=64 ppm=14 cpu=100/10 short=false
+  t sz=128 ask=507555 sent=507526 lost=0 ppm=0 cpu=100/9 short=false
+  t sz=128 ask=507555 sent=507598 lost=0 ppm=0 cpu=100/5 short=false
+CAP E-vlanbr-3to4 f=132 pps=507598 line%=61 mbps=536 ok=true
+    ppm=0 ooo=0 lat=120.us/215.us jit=139.us cpu=100/5
+  t sz=256 ask=446428 sent=314591 lost=292 ppm=103 cpu=100/8 short=true
+  t sz=256 ask=223214 sent=223194 lost=0 ppm=0 cpu=100/11 short=false
+  t sz=256 ask=334821 sent=334838 lost=64 ppm=21 cpu=100/12 short=false
+  t sz=256 ask=390624 sent=302087 lost=0 ppm=0 cpu=100/9 short=true
+  t sz=256 ask=362722 sent=317323 lost=0 ppm=0 cpu=100/9 short=true
+  t sz=256 ask=348771 sent=343487 lost=380 ppm=122 cpu=100/9 short=true
+  t sz=256 ask=341796 sent=315024 lost=10 ppm=3 cpu=100/9 short=true
+  t sz=256 ask=338308 sent=338346 lost=0 ppm=0 cpu=100/10 short=false
+  t sz=256 ask=338308 sent=338401 lost=111 ppm=5 cpu=100/13 short=false
+CAP E-vlanbr-3to4 f=260 pps=338401 line%=75 mbps=703 ok=true
+    ppm=5 ooo=0 lat=190.us/1.05ms jit=986.us cpu=100/13
+  t sz=512 ask=233208 sent=232593 lost=113 ppm=53 cpu=100/11 short=false
+  t sz=512 ask=233208 sent=232801 lost=254 ppm=18 cpu=100/11 short=false
+CAP E-vlanbr-3to4 f=516 pps=232801 line%=99 mbps=961 ok=true
+    ppm=18 ooo=0 lat=1.27ms/1.41ms jit=1.33ms cpu=100/11
+  t sz=1024 ask=119274 sent=119190 lost=246 ppm=229 cpu=88/11 short=false
+  t sz=1024 ask=119274 sent=119265 lost=251 ppm=35 cpu=88/9 short=false
+CAP E-vlanbr-3to4 f=1028 pps=119265 line%=99 mbps=980 ok=true
+    ppm=35 ooo=0 lat=1.97ms/2.28ms jit=2.20ms cpu=88/9
+  t sz=1280 ask=95858 sent=95836 lost=88 ppm=102 cpu=82/11 short=false
+  t sz=1280 ask=95858 sent=95850 lost=245 ppm=42 cpu=86/11 short=false
+CAP E-vlanbr-3to4 f=1284 pps=95850 line%=99 mbps=984 ok=true
+    ppm=42 ooo=0 lat=2.39ms/2.68ms jit=2.57ms cpu=86/11
+  t sz=1518 ask=81063 sent=81043 lost=74 ppm=101 cpu=84/11 short=false
+  t sz=1518 ask=81063 sent=81061 lost=240 ppm=49 cpu=80/9 short=false
+CAP E-vlanbr-3to4 f=1522 pps=81061 line%=99 mbps=986 ok=true
+    ppm=49 ooo=0 lat=2.69ms/3.15ms jit=3.04ms cpu=80/9

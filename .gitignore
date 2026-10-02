@@ -1,0 +1,5 @@
+# Router exports and backups carry passwords and addresses. Never commit them.
+*.backup
+*.rif
+*export*.rsc
+.env

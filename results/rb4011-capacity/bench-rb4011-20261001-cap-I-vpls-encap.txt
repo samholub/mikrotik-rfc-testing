@@ -1,0 +1,106 @@
+# RB4011 capacity - I: VPLS encapsulation (bridge ether3 <-> VPLS, LDP over ether4)
+# Date 2026-10-01. Generator BENCH-NEW (RB4011, ROS 7.19.5) sends plain frames on ether3 and counts the
+# labelled VPLS frames arriving on ether4 (footer found inside), so this is DUT ENCAP only. The generator
+# ran LDP + a VPLS interface as the control-plane peer (loopbacks 10.255.0.1/.2, LDP on ether4, input
+# accept on ether4 added on both). DUT BENCH-712 (ROS 7.20.7): vpls t-vpls peer 10.255.0.2 vpls-id 100:1,
+# defaults; bridge t-br ether3 (H) + t-vpls, static bridge hosts. LDP neighbor operational throughout.
+# Outer adds ~18-22 B (outer eth 14 + PW label 4, + 4 if a control word is used; transport label is
+# implicit-null on a direct link). Control-word setting was left at default and not read back.
+# 1518 B frames did NOT fragment (port l2mtu 1592); the ~1.7% loss at 1518 line rate is the 1G port.
+# Method: tools/bench/tg-scan.rsc, fixed rates, 3 x 10 s trials. ppm = loss per million, cpu = gen/DUT peak.
+SC I-vpls-1flow f=64 ask=100000 sent=99960 ppm=12 cpu=43/49
+SC I-vpls-1flow f=64 ask=100000 sent=99983 ppm=7 cpu=47/49
+SC I-vpls-1flow f=64 ask=100000 sent=99984 ppm=7 cpu=49/53
+SC I-vpls-1flow f=64 ask=150000 sent=149995 ppm=8 cpu=61/54
+SC I-vpls-1flow f=64 ask=150000 sent=149980 ppm=3 cpu=62/54
+SC I-vpls-1flow f=64 ask=150000 sent=149979 ppm=9 cpu=57/56
+SC I-vpls-1flow f=64 ask=200000 sent=199913 ppm=449 cpu=65/63
+SC I-vpls-1flow f=64 ask=200000 sent=199968 ppm=3 cpu=70/60
+SC I-vpls-1flow f=64 ask=200000 sent=199969 ppm=6 cpu=73/58
+SC I-vpls-1flow f=64 ask=250000 sent=249938 ppm=8 cpu=66/63
+SC I-vpls-1flow f=64 ask=250000 sent=249961 ppm=264 cpu=73/65
+SC I-vpls-1flow f=64 ask=250000 sent=249961 ppm=8 cpu=73/61
+SC I-vpls-1flow f=64 ask=300000 sent=299952 ppm=9 cpu=80/66
+SC I-vpls-1flow f=64 ask=300000 sent=299956 ppm=118 cpu=75/70
+SC I-vpls-1flow f=64 ask=300000 sent=299960 ppm=598 cpu=75/67
+SC I-vpls-1flow f=64 ask=400000 sent=399892 ppm=2401 cpu=82/72
+SC I-vpls-1flow f=64 ask=400000 sent=399935 ppm=2148 cpu=85/74
+SC I-vpls-1flow f=64 ask=400000 sent=399938 ppm=1819 cpu=85/74
+SC I-vpls-1flow f=64 ask=500000 sent=499897 ppm=1099 cpu=88/82
+SC I-vpls-1flow f=64 ask=500000 sent=499921 ppm=532 cpu=89/83
+SC I-vpls-1flow f=64 ask=500000 sent=499922 ppm=319 cpu=87/81
+SC I-vpls-1flow f=512 ask=50000 sent=49992 ppm=11 cpu=45/50
+SC I-vpls-1flow f=512 ask=50000 sent=49992 ppm=13 cpu=40/43
+SC I-vpls-1flow f=512 ask=50000 sent=49993 ppm=0 cpu=40/42
+SC I-vpls-1flow f=512 ask=100000 sent=99984 ppm=216 cpu=63/62
+SC I-vpls-1flow f=512 ask=100000 sent=99984 ppm=281 cpu=60/66
+SC I-vpls-1flow f=512 ask=100000 sent=99984 ppm=8 cpu=67/64
+SC I-vpls-1flow f=512 ask=150000 sent=149979 ppm=8 cpu=76/80
+SC I-vpls-1flow f=512 ask=150000 sent=149976 ppm=186 cpu=75/76
+SC I-vpls-1flow f=512 ask=150000 sent=149980 ppm=7 cpu=74/76
+SC I-vpls-1flow f=512 ask=200000 sent=199968 ppm=4 cpu=93/91
+SC I-vpls-1flow f=512 ask=200000 sent=199968 ppm=7 cpu=92/89
+SC I-vpls-1flow f=512 ask=200000 sent=199968 ppm=9 cpu=92/92
+SC I-vpls-1flow f=512 ask=234962 sent=234918 ppm=39663 cpu=99/100
+SC I-vpls-1flow f=512 ask=234962 sent=234905 ppm=40114 cpu=100/100
+SC I-vpls-1flow f=512 ask=234962 sent=234895 ppm=39600 cpu=100/100
+SC I-vpls-1flow f=1518 ask=20000 sent=19997 ppm=11 cpu=95/58
+SC I-vpls-1flow f=1518 ask=20000 sent=19997 ppm=0 cpu=31/24
+SC I-vpls-1flow f=1518 ask=20000 sent=19996 ppm=11 cpu=28/28
+SC I-vpls-1flow f=1518 ask=40000 sent=39994 ppm=572 cpu=31/47
+SC I-vpls-1flow f=1518 ask=40000 sent=39993 ppm=566 cpu=35/37
+SC I-vpls-1flow f=1518 ask=40000 sent=39994 ppm=25 cpu=38/42
+SC I-vpls-1flow f=1518 ask=60000 sent=59991 ppm=18 cpu=48/54
+SC I-vpls-1flow f=1518 ask=60000 sent=59991 ppm=1007 cpu=45/54
+SC I-vpls-1flow f=1518 ask=60000 sent=59991 ppm=203 cpu=49/51
+SC I-vpls-1flow f=1518 ask=81274 sent=81261 ppm=14069 cpu=51/64
+SC I-vpls-1flow f=1518 ask=81274 sent=81267 ppm=14634 cpu=53/66
+SC I-vpls-1flow f=1518 ask=81274 sent=81262 ppm=14313 cpu=55/64
+SC I-vpls-256flow f=64 ask=100000 sent=99984 ppm=11 cpu=48/37
+SC I-vpls-256flow f=64 ask=100000 sent=99991 ppm=6 cpu=47/37
+SC I-vpls-256flow f=64 ask=100000 sent=99990 ppm=4 cpu=59/35
+SC I-vpls-256flow f=64 ask=150000 sent=149981 ppm=8 cpu=64/39
+SC I-vpls-256flow f=64 ask=150000 sent=149980 ppm=6 cpu=60/41
+SC I-vpls-256flow f=64 ask=150000 sent=149980 ppm=6 cpu=60/40
+SC I-vpls-256flow f=64 ask=200000 sent=199984 ppm=6 cpu=63/49
+SC I-vpls-256flow f=64 ask=200000 sent=199968 ppm=2 cpu=61/46
+SC I-vpls-256flow f=64 ask=200000 sent=199967 ppm=7 cpu=70/49
+SC I-vpls-256flow f=64 ask=250000 sent=249961 ppm=5 cpu=79/51
+SC I-vpls-256flow f=64 ask=250000 sent=249948 ppm=29 cpu=76/48
+SC I-vpls-256flow f=64 ask=250000 sent=249960 ppm=5 cpu=80/53
+SC I-vpls-256flow f=64 ask=300000 sent=299959 ppm=26 cpu=80/55
+SC I-vpls-256flow f=64 ask=300000 sent=299960 ppm=7 cpu=75/57
+SC I-vpls-256flow f=64 ask=300000 sent=299959 ppm=745 cpu=77/53
+SC I-vpls-256flow f=64 ask=400000 sent=399937 ppm=731 cpu=85/59
+SC I-vpls-256flow f=64 ask=400000 sent=399937 ppm=675 cpu=86/61
+SC I-vpls-256flow f=64 ask=400000 sent=399937 ppm=72 cpu=87/59
+SC I-vpls-256flow f=64 ask=500000 sent=499884 ppm=107 cpu=89/69
+SC I-vpls-256flow f=64 ask=500000 sent=499923 ppm=1627 cpu=87/71
+SC I-vpls-256flow f=64 ask=500000 sent=499921 ppm=1654 cpu=93/61
+SC I-vpls-256flow f=512 ask=50000 sent=49993 ppm=17 cpu=36/20
+SC I-vpls-256flow f=512 ask=50000 sent=49992 ppm=11 cpu=39/20
+SC I-vpls-256flow f=512 ask=50000 sent=49992 ppm=17 cpu=37/25
+SC I-vpls-256flow f=512 ask=100000 sent=99984 ppm=11 cpu=54/33
+SC I-vpls-256flow f=512 ask=100000 sent=99984 ppm=8 cpu=64/34
+SC I-vpls-256flow f=512 ask=100000 sent=99990 ppm=118 cpu=59/34
+SC I-vpls-256flow f=512 ask=150000 sent=149980 ppm=496 cpu=80/42
+SC I-vpls-256flow f=512 ask=150000 sent=149979 ppm=1317 cpu=77/42
+SC I-vpls-256flow f=512 ask=150000 sent=149979 ppm=629 cpu=83/44
+SC I-vpls-256flow f=512 ask=200000 sent=199959 ppm=572 cpu=90/56
+SC I-vpls-256flow f=512 ask=200000 sent=199968 ppm=32 cpu=93/50
+SC I-vpls-256flow f=512 ask=200000 sent=199965 ppm=10 cpu=93/50
+SC I-vpls-256flow f=512 ask=234962 sent=234810 ppm=42733 cpu=100/57
+SC I-vpls-256flow f=512 ask=234962 sent=234903 ppm=43815 cpu=99/57
+SC I-vpls-256flow f=512 ask=234962 sent=234924 ppm=40149 cpu=100/61
+SC I-vpls-256flow f=1518 ask=20000 sent=19996 ppm=11 cpu=92/10
+SC I-vpls-256flow f=1518 ask=20000 sent=19998 ppm=0 cpu=26/14
+SC I-vpls-256flow f=1518 ask=20000 sent=19996 ppm=11 cpu=25/15
+SC I-vpls-256flow f=1518 ask=40000 sent=39993 ppm=16 cpu=37/19
+SC I-vpls-256flow f=1518 ask=40000 sent=39993 ppm=16 cpu=32/20
+SC I-vpls-256flow f=1518 ask=40000 sent=39993 ppm=13 cpu=37/22
+SC I-vpls-256flow f=1518 ask=60000 sent=59991 ppm=9 cpu=46/26
+SC I-vpls-256flow f=1518 ask=60000 sent=59991 ppm=5 cpu=46/27
+SC I-vpls-256flow f=1518 ask=60000 sent=59990 ppm=11 cpu=46/21
+SC I-vpls-256flow f=1518 ask=81274 sent=81261 ppm=14056 cpu=54/27
+SC I-vpls-256flow f=1518 ask=81274 sent=81260 ppm=14079 cpu=54/25
+SC I-vpls-256flow f=1518 ask=81274 sent=81261 ppm=14090 cpu=55/35

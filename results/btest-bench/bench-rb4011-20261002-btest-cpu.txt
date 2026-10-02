@@ -1,0 +1,24 @@
+# Does btest's CPU figure report the busiest core or the average? Bench 2026-10-02.
+# BENCH-NEW (RB4011, ROS 7.19.5) runs UDP btest to BENCH-712 (RB4011, ROS 7.20.7) over ether2, 15 s per case.
+# btest-local / btest-remote = the highest local-cpu-load / remote-cpu-load seen in the do={} callbacks.
+# gen-core / dut-core = peak per-core load from /system resource cpu (sampled every 0.5 s / 1 s);
+# gen-all / dut-all = peak /system resource cpu-load (the overall figure). Tool: tools/bench/bt-cpu.rsc.
+# case = connection-count, direction, udp size, throttle bps.
+CPU case=1,transmit,52,60000000 btest-local=26 gen-core=100 gen-all=26
+    btest-remote=26 dut-core/all=100/26
+CPU case=1,transmit,52,150000000 btest-local=26 gen-core=100 gen-all=26
+    btest-remote=26 dut-core/all=100/26
+CPU case=20,both,52,40000000 btest-local=81 gen-core=91 gen-all=81
+    btest-remote=81 dut-core/all=90/81
+CPU case=20,both,52,80000000 btest-local=100 gen-core=100 gen-all=100
+    btest-remote=99 dut-core/all=100/99
+CPU case=20,both,1500,400000000 btest-local=39 gen-core=52 gen-all=39
+    btest-remote=40 dut-core/all=47/40
+# (A first pass with the remote half cut off by the console width gave the same local figures:
+#  25/100/25, 26/100/26, 77/87/77, 99/100/99, 38/46/38.)
+#
+# Result: btest's local-cpu-load and remote-cpu-load equal /system resource cpu-load, the AVERAGE over
+# the four cores, at both ends. With one connection one core sat at 100% while btest read 26%.
+# With rfc-test.rsc's 20 connections btest's own load spreads, and the average read 5-13 points under
+# the busiest core. The 90% INCONCLUSIVE rule therefore misses a pinned core whenever the load on the
+# router is concentrated - one heavy flow, one tunnel, or CPU-forwarded customer traffic beside the test.

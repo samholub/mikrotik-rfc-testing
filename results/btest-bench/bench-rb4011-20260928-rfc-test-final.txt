@@ -1,0 +1,48 @@
+﻿Final regression of rfc-test.rsc (1f6239e), exact bytes, on the bench
+Date   : 2026-09-28
+Path   : BENCH-NEW RB4011 (ROS 7.19.5) -> BENCH-712 RB4011 (ROS 7.20.7), direct cable
+Script : rfc-test.rsc as committed; bench copy had the btest password blanked (typed-IP path).
+Load   : Brief, 20 Mbps, all six sizes
+Faults : raw prerouting drop on BENCH-NEW ether2 (return path), nth=500 or all UDP.
+Result : 3 of 3 as expected, identical to the 2026-09-25 matrix (bench-rb4011-20260925-merged-matrix.txt):
+         clean -> PASS all; return 0.20% -> FAIL all (0.15-0.19%); dead return -> FAIL all (Back 0%).
+         Banner "RFC test". Rules and script removed afterwards.
+=== CASE H0-clean ===
+===== RFC test =====
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00    99     98    34          PASS
+  128 B          0     150498    0.00    99     98    22          PASS
+  256 B          0      80703    0.00    99     98    15          PASS
+  512 B          0      41868    0.00    99     98     9          PASS
+  1024 B         0      21330    0.00    99     98     6          PASS
+  1500 B         0      14652    0.00    99     98     5          PASS
+  PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
+0 X prerouting  drop        0        0
+1 X prerouting  drop        0        0
+=== CASE H2-rev-0.20 ===
+===== RFC test =====
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B         481     247491    0.19    99     98    32          FAIL
+  128 B        293     150498    0.19    99     98    24          FAIL
+  256 B        155      80703    0.19    99     98    15          FAIL
+  512 B         78      41868    0.18    99     98    10          FAIL
+  1024 B        37      21330    0.17    99     98     6          FAIL
+  1500 B        23      14652    0.15    99     98     5          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+0 X prerouting  drop    248 934    1 234
+1 X prerouting  drop          0        0
+=== CASE H5-dead-return ===
+===== RFC test =====
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00   100      0    29          FAIL
+  128 B          0     150498    0.00    99      0    22          FAIL
+  256 B          0      80703    0.00    99      0    15          FAIL
+  512 B          0      41868    0.00    99      0     8          FAIL
+  1024 B         0      21330    0.00    99      0     6          FAIL
+  1500 B         0      14652    0.00    99      0     4          FAIL
+  FAIL: 6 size(s). Confirm by running the same test FROM 192.168.78.2
+0 X prerouting  drop              0        0
+1 X prerouting  drop    124 572 778  615 967

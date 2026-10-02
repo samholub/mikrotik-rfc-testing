@@ -1,0 +1,49 @@
+Forward loss at SLA resolution (fault F4): what one end can and cannot see
+Date   : 2026-09-25
+Path   : BENCH-NEW RB4011 (ROS 7.19.5) ether2 <-> ether2 BENCH-712 RB4011 (ROS 7.20.7), direct cable
+Faults : raw prerouting drop, nth=N,1, on the RECEIVING router's ether2. Counts are that rule's counters.
+
+--- E1: does any btest direction report forward loss in lost-packets? ---
+512 B (setting 494), 20 s, connection-count=20, 18,385,712 bps
+E1a direction=transmit, 10% dropped into BENCH-712 : dropped 9,323   lostsum 0      tx-avg 15,561,648 (-10%)
+E1b direction=receive,  10% dropped into BENCH-NEW : dropped 9,310   lostsum 8,471  (91%)
+Test 1 (fault-matrix record), direction=both        : forward drops absent, reverse 93% counted
+=> lost-packets only ever counts loss INTO the router that started the test.
+   A second leg from the same end (transmit or receive) cannot see forward loss.
+
+--- E2: noise floor of the rate figures, clean link, 20 s, direction=both ---
+fwd = tx-avg/((size-28)*8) / asked,  back = rx-avg/((size-28)*8) / asked, in 0.01%
+speed  frame   asked pps   fwd     back    lost  cpu local/far
+  20     70     27,499    99.94   99.49     0    32/35
+  20    128     16,722    99.92   99.46     0    24/25
+  20    256      8,967    99.91   99.44     0    15/17
+  20    512      4,652    99.72   99.24     0    10/11
+  20   1024      2,370    99.49   99.07     0     6/7
+  20   1500      1,628    99.44   99.01     0     5/4
+ 100     70    137,499   100.24   99.72     0    97/99
+ 100    128     83,614    99.87   99.66     0    76/7x
+ 100    256     44,836   100.00   99.40     0    48/xx
+ 100    512     23,261   100.01   99.58     0    29/xx
+ 100   1024     11,853    99.85   99.40     0    20/xx
+ 100   1500      8,141    99.92   99.45     0    14/1x
+(x = digit lost to console line wrap)
+=> clean fwd 99.44-100.24, back 99.01-99.72. 0.20% forward loss sits inside that band:
+   the rate cannot resolve an SLA of 0.10%. A shortfall of ~3% or more is unambiguous.
+
+--- E3: the same fault run from the far end ---
+Design (b) prototype run ON BENCH-712 -> 192.168.78.1, 0.20% dropped into BENCH-712 (1,372 dropped)
+  Frame         Lost        Sent    Loss%   Fwd%  Back%        Result
+  70 B          1090      522481    0.20%    99%    99%          FAIL
+  512 B          171       88388    0.19%    99%    99%          FAIL
+  1500 B          59       30932    0.19%    99%    98%          FAIL
+=> from the far end the same loss is judged at SLA resolution. Cost: a second full run and a
+   login on the second router.
+
+--- E4: what a generator limit looks like (clean link, beyond the RB4011's pps) ---
+speed  frame   asked pps   fwd     back    lostsum   cpu
+ 200     70    274,999    75.40   73.58    26,533  100/100
+ 400     70    549,999    36.53   34.02   328,222  100/100
+ 200    512     46,522   100.16   99.69         0   48/xx
+ 400    512     93,045   100.35   99.84         0   81/xx
+=> an overloaded generator shows BOTH CPUs at 100% and ALSO produces lost-packets (1.9% at
+   200 Mbps), which alone would read as a circuit FAIL. 97/99% (100 Mbps, 70 B) was still clean.

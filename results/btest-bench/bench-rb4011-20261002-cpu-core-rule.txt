@@ -1,0 +1,99 @@
+# rfc-test.rsc with the busiest-core rule - bench validation 2026-10-02.
+# BENCH-NEW (RB4011, ROS 7.19.5) runs the script against BENCH-712 (RB4011, ROS 7.20.7) over ether2,
+# Brief, 20 Mbps, typed-IP path (admin password typed, redacted). Script uploaded with testPass blanked.
+# Change: the btest callback also reads this router's per-core loads (/system/resource/cpu) and keeps the
+# peak; the CPU line shows it and the 90% INCONCLUSIVE rule uses max(this router avg, busiest core, far end).
+# Why: btest's CPU figures are all-core averages (results/btest-bench/bench-rb4011-20261002-btest-cpu.txt).
+# Cases:
+#  C0 clean, all sizes                                  -> must stay PASS (no false INCONCLUSIVE inputs)
+#  C1 1% loss (raw drop nth=100 on BENCH-NEW ether2 udp from the far end), 512 B -> must stay FAIL
+#  C2 as C1 plus a busy loop (:execute {:while (true) do={}}) pinning one core on BENCH-NEW
+#                                                       -> old rule FAIL (average 30%), new rule INCONCLUSIVE
+# Raw rule dropped 973 packets over C1+C2 (384 + 435 counted by btest: ~89-90% capture, as before).
+= 0) do={\n        :put \"\"\n        :put (\"--- \$frame B frame | \$circuitSpeedMbps Mbps | \$modeName ---\")\n        :put (\"  Test    : \$myName -> \$targetIP\")\n        :put (\"  Result  : NO T
+EST - btest: \$btStatus\")\n        :put (\"  ! Nothing was measured. Check the address, the login, and that\")\n        :put (\"  ! bandwidth-server is on at the far end, then re-run.\")\n        :lo
+ \$targetIP\")\n    :put (\"  Arrived : far end got \$outPct% | \$backPct% came back\")\n    :put (\"  Rate    : \" . [\$fmt v=((\$outPps * \$wireSize * 8) / 1000) dec=3] . \" Mbps out | \" . [\$fmt v
+=((\$backPps * \$wireSize * 8) / 1000) dec=3] . \" Mbps back (L1)\")\n    :put (\"  Lost    : \$totalLost of \$sent coming back (\" . [\$fmt v=\$loss100 dec=2] . \"%), SLA \$slaLabel%\")\n    :put (\"
+  CPU     : this router \$maxLocalCpu% (bus")
+looks like ROS 6 - Out% is not meaningful\") }\n    :put (\"  Result  : \$vd\")\n    :if (\$vd != \"PASS\") do={\n        :if (\$outPct < \$minArrivedPct) do={ :put (\"  ! Only \$outPct% arrived at th
+e far end\") }\n        :if (\$backPct < \$minArrivedPct) do={ :put (\"  ! Only \$backPct% came back\") }\n        :if (\$lossPpm > (\$slaLimit * 100)) do={ :put (\"  ! Loss coming back is over the SL
+/system script set r source=([/system script get r source] . "\$vd = \"FAIL\") do={ :put (\"  ! Confirm from the other end before escalating\") }\n    :if (\$vd = \"INCONCLUSIVE\")
+ do={\n        :put (\"  ! A router reached \$cpuMax% CPU - that can cause this loss.\")\n        :put (\"  ! Lower the speed or skip the small frames, then re-run\")\n    }\n    :if ([:len \$myDrops]
+ > 0) do={ :put (\"  ! This router dropped frames in its own queues:\$myDrops\") }\n    :if (\$connSeen != \$connCount) do={ :put (\"  ! btest used \$connSeen streams, not \$connCount\") }\n    :log i
+ (\$aV, \$vd)\n    :delay 3s\n}\n\n:put \"\"\n:put \"===========================================================================\"\n:put (\"  SUMMARY | \$myName -> \$targetIP | \$circuitSpeedMbps Mbps
+/system script set r source=([/system script get r source] . "={ :set ap ((\$passLost * 10000) / \$passSent) }\n    :put (\"  PASS: \$nPass size(s), \$passLost lost of \$passSent =
+ \" . [\$fmt v=\$ap dec=2] . \"% (SLA \$slaLabel%)\")\n}\n:if (\$nFail > 0) do={\n    :put \"  FAIL: \$nFail size(s). Confirm by running the same test FROM \$targetIP\"\n    :put \"  before escalating
+. Escalate only what both ends agree on.\"\n}\n:if (\$nInc > 0) do={\n    :put \"  INCONCLUSIVE: \$nInc size(s). A router hit its CPU limit, so the loss\"\n    :put \"  may not be the circuit. Not a p
+=== CASE C0-clean-all ===
+--- 70 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 99% came back
+  Lost    : 0 of 247491 coming back (0.00%), SLA 0.10%
+  CPU     : this router 31% (busiest core 39%) | far end 32%
+  Result  : PASS
+--- 128 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 98% came back
+  Lost    : 0 of 150498 coming back (0.00%), SLA 0.10%
+  CPU     : this router 21% (busiest core 34%) | far end 22%
+  Result  : PASS
+--- 256 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 98% came back
+  Lost    : 0 of 80703 coming back (0.00%), SLA 0.10%
+  CPU     : this router 15% (busiest core 19%) | far end 14%
+  Result  : PASS
+--- 512 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 98% came back
+  Lost    : 0 of 41868 coming back (0.00%), SLA 0.10%
+  CPU     : this router 9% (busiest core 13%) | far end 9%
+  Result  : PASS
+--- 1024 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 98% came back
+  Lost    : 0 of 21330 coming back (0.00%), SLA 0.10%
+  CPU     : this router 6% (busiest core 13%) | far end 4%
+  Result  : PASS
+--- 1500 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 98% came back
+  Lost    : 0 of 14652 coming back (0.00%), SLA 0.10%
+  CPU     : this router 4% (busiest core 10%) | far end 4%
+  Result  : PASS
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  70 B           0     247491    0.00    99     99    39          PASS
+  128 B          0     150498    0.00    99     98    34          PASS
+  256 B          0      80703    0.00    99     98    19          PASS
+  512 B          0      41868    0.00    99     98    13          PASS
+  1024 B         0      21330    0.00    99     98    13          PASS
+  1500 B         0      14652    0.00    99     98    10          PASS
+---------------------------------------------------------------------------
+  PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
+=== CASE C1-loss-1pct ===
+--- 512 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 97% came back
+  Lost    : 384 of 41868 coming back (0.91%), SLA 0.10%
+  CPU     : this router 8% (busiest core 15%) | far end 9%
+  Result  : FAIL
+  ! Loss coming back is over the SLA
+  ! Confirm from the other end before escalating
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  512 B        384      41868    0.91    99     97    15          FAIL
+---------------------------------------------------------------------------
+  FAIL: 1 size(s). Confirm by running the same test FROM 192.168.78.2
+SPINCORE cpu0 0
+SPINCORE cpu1 0
+SPINCORE cpu2 73
+SPINCORE cpu3 0
+=== CASE C2-loss-1pct-pinned-core ===
+--- 512 B frame | 20 Mbps | Brief ---
+  Arrived : far end got 99% | 97% came back
+  Lost    : 435 of 41868 coming back (1.03%), SLA 0.10%
+  CPU     : this router 30% (busiest core 100%) | far end 9%
+  Result  : INCONCLUSIVE
+  ! Loss coming back is over the SLA
+  ! A router reached 100% CPU - that can cause this loss.
+  ! Lower the speed or skip the small frames, then re-run
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
+  512 B        435      41868    1.03    99     97   100  INCONCLUSIVE
+---------------------------------------------------------------------------
+  INCONCLUSIVE: 1 size(s). A router hit its CPU limit, so the loss
+DROPS 973
