@@ -9,8 +9,8 @@
 # Generator ceiling (config A): ~739k pps @64, ~526k @128, ~382k @256, line rate >= 512.
 0 H comment=t-cap interface=ether3 bridge=t-br priority=0x80 edge=auto point-to-p
 1 H comment=t-cap interface=ether7 bridge=t-br priority=0x80 edge=auto point-to-p
-0 04:F4:1C:A4:A8:9E  ether3        t-br  
-1 04:F4:1C:A4:A8:A2  ether7        t-br  
+0 04:F4:1C:xx:xx:xx  ether3        t-br  
+1 04:F4:1C:xx:xx:xx  ether7        t-br  
   t sz=60 ask=1488095 sent=778869 lost=154033 ppm=21973 cpu=100/70 short=true
   t sz=60 ask=744047 sent=743908 lost=83260 ppm=12435 cpu=100/72 short=false
   t sz=60 ask=372023 sent=371965 lost=0 ppm=0 cpu=100/58 short=false

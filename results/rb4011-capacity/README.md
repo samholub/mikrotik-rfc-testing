@@ -123,4 +123,4 @@ At 512 B and above, tunnels also lose 42-50 B per packet of 1G underlay capacity
 | `...20261001-cap-X-drift-check.txt` | The unprompted restart and the reboot that fixed it |
 | `...20261001-cap-K-routed-firewall-rerun.txt` | Notrack / conntrack / fasttrack on a clean DUT |
 | `...20261001-cap-rechecks-G2-M-B2.txt` | EoIP recheck, underlay MTU 1590, cross-chip rescan |
-| `...20261001-research-q5-q6.txt` | RESEARCH.md questions 5 and 6 |
+| `...20261001-research-q5-q6.txt` | Research questions 5 (one-way traffic-generator counting) and 6 (burst test) |

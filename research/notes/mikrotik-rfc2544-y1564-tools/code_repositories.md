@@ -77,7 +77,7 @@ Nothing public comes close to the user's script. Every RouterOS btest script fou
 ### Inferences
 - The user's script (frame-size sweep via `local-udp-tx-size`, summed `lost-packets`, 0.10% SLA, CPU >= 90% gate, NO TEST detection, per-direction verdict) appears to be the most complete public attempt at RFC 2544-style acceptance testing built on btest. None of the public scripts even read `lost-packets`.
 - The Mibps-for-Mbps mistake (dividing by 1,048,576) shows up in two independent scripts (Cam-e-ron, bubnovd). It looks like a common copy-paste pattern in community btest scripts.
-- MoonGen's defaults (10 s trials, 0.1% max loss, binary search on hardware counters) are the closest open-source analogue to the user's settings. Its loss comes from hardware port counters at both generator ports (TX minus RX). That is the kind of evidence the user's CLAUDE.md ranks above software-counted loss.
+- MoonGen's defaults (10 s trials, 0.1% max loss, binary search on hardware counters) are the closest open-source analogue to the user's settings. Its loss comes from hardware port counters at both generator ports (TX minus RX). That is the kind of evidence this project ranks above software-counted loss.
 
 ### Gaps
 - GitHub code search (for `bandwidth-test` together with `lost-packets` inside `.rsc` files) needs authentication and was not run. Repos that bury a btest script without naming it could be missed.
@@ -206,7 +206,7 @@ Several capable open-source RFC 2544 and Y.1564 generators exist. The main ones 
 - **Lay007/network-quality-assessment**: PHP, topic y1564. A design for FPGA/SFP-timestamped SLA probes. Its README says hardware timestamp accuracy "remain[s] unqualified" and only a synthetic demo is validated. — [repo](https://github.com/Lay007/network-quality-assessment)
 
 ### Inferences
-- For a MikroTik circuit, an open RFC 2544 or Y.1564 tester would mean putting a Linux box (fastlane, stem, MoonGen, JasonW2022's tool) at one end and a reflector (stem's, or JasonW2022's Juniper-reflect mode) at the other. That is the standard two-box SAT setup, not something to run on the router. Loss from a generator's own TX/RX counters would be stronger evidence than btest's software count, in line with the user's CLAUDE.md evidence hierarchy.
+- For a MikroTik circuit, an open RFC 2544 or Y.1564 tester would mean putting a Linux box (fastlane, stem, MoonGen, JasonW2022's tool) at one end and a reflector (stem's, or JasonW2022's Juniper-reflect mode) at the other. That is the standard two-box SAT setup, not something to run on the router. Loss from a generator's own TX/RX counters would be stronger evidence than btest's software count, in line with the evidence rules of this project (hardware and per-flow counters rank above software-counted loss).
 - Many 2026 repos have 0-1 stars and very recent commits (fastlane, stem, pewpewpacket, Lay007). They are young, probably small-team or single-author projects, and their RFC and Y.1564 conformance claims were not independently validated here.
 
 ### Gaps

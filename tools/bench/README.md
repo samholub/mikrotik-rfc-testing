@@ -36,7 +36,7 @@ Typical run:
 ```
 
 Clean up afterwards: remove the `t-*` raw rules and the `r` script on both
-routers. Never touch the desk hEX.
+routers.
 
 ## Capacity sweeps (results/rb4011-capacity/)
 

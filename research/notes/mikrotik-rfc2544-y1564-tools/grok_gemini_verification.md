@@ -1,6 +1,6 @@
 # Verification of the Grok / Gemini output (2026-09-30)
 
-Source file: `_raw_grok_gemini_2026-09-30.md`. Every URL was opened on 2026-09-30.
+The raw source file is not published. Every URL was opened on 2026-09-30.
 Access methods: X posts via `cdn.syndication.twimg.com/tweet-result` (publish.twitter.com oembed returned empty);
 Reddit via the PullPush API (reddit.com returned 403, WebFetch is blocked for reddit.com); MikroTik forum via
 Discourse `/t/<id>.json` plus `/t/<id>/posts.json`; YouTube via oembed and the watch page's `shortDescription`;

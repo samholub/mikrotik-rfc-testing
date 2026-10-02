@@ -1,7 +1,7 @@
 # GitHub code search (authenticated), 2026-09-30
 
 Run with `gh search code` (legacy code-search API, first 100 hits per query) as the owner's
-account. Raw hit list: `_raw_github_code_search_2026-09-30.txt` in this folder.
+account. The raw hit list is not published.
 
 ## Queries and hit counts
 

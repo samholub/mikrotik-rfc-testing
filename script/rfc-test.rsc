@@ -146,7 +146,7 @@
     :global targetBps (((($size * $circuitSpeedMbps * 1000000) / $wireSize) * 99 / 100) / 8 * 8)
     :local askedPps ($targetBps / ($size * 8))
     # Against ROS 7 both averages count the UDP payload (size - 28), and
-    # tx-total-average is what the FAR END received. CLAUDE.md has the bench.
+    # tx-total-average is what the FAR END received. See results/btest-bench/ for the bench.
     :local meter (($size - 28) * 8)
     :put ""
     :put "Running $frame B ..."

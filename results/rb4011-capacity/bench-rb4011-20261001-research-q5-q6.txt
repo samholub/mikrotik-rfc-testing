@@ -1,4 +1,4 @@
-# RESEARCH.md questions 5 and 6, bench 2026-10-01. Sender/receiver as stated; DUT BENCH-712 ROS 7.20.7,
+# Research questions 5 (one-way traffic-generator counting) and 6 (burst test), bench 2026-10-01. Sender/receiver as stated; DUT BENCH-712 ROS 7.20.7,
 # generator BENCH-NEW ROS 7.19.5.
 #
 # Q5: can one traffic-generator count a stream sent one-way by another?  YES, if both use the same
