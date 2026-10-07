@@ -173,7 +173,9 @@ the overload may be hiding:
 | `btest used N streams, not 20` | Figures are not comparable with other runs. |
 | `Note : far end looks like ROS 6 - Out% is not meaningful` | Out% read over 110%. A RouterOS 6 far end counts differently, so Out% reads high (216% at 70 B, falling to ~101% at 1500 B). The verdict is unchanged, but "confirm from the other end" cannot be followed: ROS 6 cannot run the script. The fleet is ROS 7; test against a ROS 7 box. |
 
-Every trial is also written to the router log:
+Every trial is also written to the router log, along with the Max MTU
+figure. They are all written in one batch at the end of the run, so a run's
+records land together:
 
 ```
 /log print where message~"rfc "
@@ -192,12 +194,54 @@ Every trial is also written to the router log:
   PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
   Loss is counted coming back. Outbound is only checked for big loss
   (under 95% arriving). To judge outbound at the SLA, run from 192.168.78.2.
+  Path MTU : 1500 B
+  WAN errors: ether1 clean
 ===========================================================================
 ```
 
 `Out%` and `Back%` are the Arrived figures, `CPU%` the highest of the two ends'
 averages and this router's busiest core.
 The PASS aggregate covers PASS rows only.
+
+## WAN errors
+
+The script resolves the port the active default route leaves on (the
+`immediate-gw` interface of `0.0.0.0/0`) and snapshots its `rx-error`,
+`tx-error`, `rx-drop` and `tx-drop` counters before the trials, then again
+after the last one. `WAN errors` in the summary reports what grew:
+
+```
+  WAN errors: ether1 clean
+  WAN errors: ether1: rx-error +4 rx-drop +12
+```
+
+Any growth is frames this router's own uplink mangled during the run - treat
+it like a queue drop on the test port: a local fault to fix before blaming
+the circuit. `not checked - no default route` means the port could not be
+resolved, nothing more. The check runs on every run, partial size lists
+included; it costs two counter reads.
+
+## Max MTU
+
+Before printing the summary the script probes the path MTU: a binary search
+of ping sizes with `do-not-fragment` set, reporting the largest IP packet
+that gets a reply. The search floor is 1200 B - a circuit is never below
+that - and the ceiling is `mtuCeil` (9216 B by default). The probe runs only when all
+frame sizes are selected; a partial list is a diagnostic rerun, and its
+summary has no `Path MTU` line. The result is the `Path MTU` line in the
+summary:
+
+```
+  Path MTU : 1500 B
+```
+
+It takes ~13 probes, paced at 0.2 s so a failing probe gives up quickly. Readings are the floor of the
+whole round trip - a low figure can be this router's interface MTU, a tunnel
+on the way, or the far end, not necessarily the circuit. Ping's
+`do-not-fragment` flags only the request; the far end's reply can come back
+fragmented, so on a path with a smaller return leg the figure reads high. If
+the far end answers no pings at all, the check reports itself unmeasurable -
+that is ICMP filtering, and the btest results above it still stand.
 
 ## Interpreting - in this order
 

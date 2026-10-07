@@ -2,6 +2,12 @@
 # ---- CONFIGURATION ----
 :local testUser "btest"       ;# login when picking a DC from the list
 :local testPass "CHANGE_ME"
+:local servers {
+    "Example DC 1"="192.0.2.10";
+    "Example DC 2"="198.51.100.10"
+}
+
+
 :local dcToSiteUser "admin"   ;# login when an IP is typed; its password is asked
 :local briefSecs 10
 :local extendedSecs 60
@@ -11,17 +17,14 @@
 :local slaLimit 10
 :local slaLabel "0.10"
 # IP packet sizes. Each is an 18 B-larger Ethernet frame: 70, 128 ... 1500 B.
-:local packetSizes {52; 110; 238; 494; 1006; 1482}
+:local packetSizes {52; 110; 238; 494; 1006; 1482; 1982}
 # Verdict thresholds, from bench results/btest-bench/bench-rb4011-20260925-*.txt:
 # clean rates read 98.5-100.2% (10 s trials lowest); an overloaded router
 # reads 100% CPU.
 :local minArrivedPct 95
 :local cpuLimit 90
-
-:local servers {
-    "Example DC 1"="192.0.2.10";
-    "Example DC 2"="198.51.100.10"
-}
+# Ceiling for the closing MTU probe: the largest ping size tried.
+:local mtuCeil 9216
 # -----------------------
 
 :local padL do={
@@ -124,6 +127,28 @@
 :local qList [:toarray ""]
 :foreach e in=[/interface/ethernet/find] do={ :set qList ($qList, [/interface/find name=[/interface/ethernet/get $e name]]) }
 
+# Error counters on the port the active default route leaves on (immediate-gw
+# reads "port%gateway"), read before the trials and again at the end; any
+# growth during the run is reported in the summary.
+:local errKeys {"rx-error"; "tx-error"; "rx-drop"; "tx-drop"}
+:local wanIf ""
+:local errBefore [:toarray ""]
+:local rId [/ip/route/find where dst-address="0.0.0.0/0" active]
+:if ([:len $rId] > 0) do={
+    :local igw [:tostr [/ip/route/get ($rId->0) immediate-gw]]
+    :local cut [:find $igw "%"]
+    :if ([:typeof $cut] = "num") do={ :set igw [:pick $igw 0 $cut] }
+    :if ([:len [/interface/find name=$igw]] > 0) do={
+        :set wanIf $igw
+        :local row ([/interface/print as-value where name=$wanIf]->0)
+        :foreach k in=$errKeys do={
+            :local v ($row->$k)
+            :if ([:typeof $v] = "nothing") do={ :set v 0 }
+            :set errBefore ($errBefore, $v)
+        }
+    }
+}
+
 :put ""
 :put "Starting $modeName test | $circuitSpeedMbps Mbps | $testSecs s per size"
 :put "Target: $targetName"
@@ -136,6 +161,9 @@
 :local aB [:toarray ""]
 :local aC [:toarray ""]
 :local aV [:toarray ""]
+# Trial and MTU log lines are batched and flushed at the end, so every run's
+# records land in the log together.
+:local aLog [:toarray ""]
 
 :foreach size in=$selectedSizes do={
     # On the wire: packet + 14 header + 4 FCS + 20 preamble and gap.
@@ -269,7 +297,7 @@
     }
     :if ([:len $myDrops] > 0) do={ :put ("  ! This router dropped frames in its own queues:$myDrops") }
     :if ($connSeen != $connCount) do={ :put ("  ! btest used $connSeen streams, not $connCount") }
-    :log info ("rfc $frame B lost=$totalLost of $sent out=$outPct back=$backPct cpu=$maxLocalCpu/$maxCore/$maxRemoteCpu $vd")
+    :set aLog ($aLog, ("rfc $frame B lost=$totalLost of $sent (" . [$fmt v=$loss100 dec=2] . "%) out=$outPct back=$backPct cpu=$maxLocalCpu/$maxCore/$maxRemoteCpu $vd"))
 
     :set aF ($aF, $frame)
     :set aL ($aL, $totalLost)
@@ -280,6 +308,63 @@
     :set aC ($aC, $cpuMax)
     :set aV ($aV, $vd)
     :delay 3s
+}
+
+# ---- Max MTU ----
+# Largest IP packet that crosses to the far end and back: /ping size counts
+# the whole packet, so the reply threshold IS the path MTU. First probe is
+# 1500 - a circuit is never below 1200, so that is the search floor. Binary
+# search from there, ~13 probes. Only the request carries do-not-fragment;
+# a fragmented reply still arrives, so on a path whose return leg is smaller
+# this can read high. Runs before the summary so the figure lands in it.
+# A partial size list is a diagnostic rerun, not an acceptance test, so the
+# probe is skipped there.
+:local mtuS ""
+:if ([:len $selectedSizes] = [:len $packetSizes]) do={
+    :local mtuFloor 1200
+    :if ([/ping $targetIP count=1 size=1500 do-not-fragment interval=00:00:00.2] = 0 && \
+         [/ping $targetIP count=1 size=$mtuFloor do-not-fragment interval=00:00:00.2] = 0) do={
+        :set mtuS "not measurable - no ping replies"
+    } else={
+        :local lo $mtuFloor
+        :local hi $mtuCeil
+        :while ($lo < $hi) do={
+            :local mid (($lo + $hi + 1) / 2)
+            :if ([/ping $targetIP count=1 size=$mid do-not-fragment interval=00:00:00.2] > 0) do={
+                :set lo $mid
+            } else={
+                :set hi ($mid - 1)
+            }
+        }
+        :if ($lo >= $mtuCeil) do={
+            :set mtuS "$mtuCeil B or more (search ceiling)"
+        } else={
+            :set mtuS "$lo B"
+        }
+        :set aLog ($aLog, ("rfc mtu=$lo target=$targetIP"))
+    }
+}
+
+# Deltas on the WAN port's error counters over the whole run.
+:local errS ""
+:if ($wanIf = "") do={
+    :set errS "not checked - no default route"
+} else={
+    :local row ([/interface/print as-value where name=$wanIf]->0)
+    :local ei 0
+    :foreach k in=$errKeys do={
+        :local v ($row->$k)
+        :if ([:typeof $v] = "nothing") do={ :set v 0 }
+        :local d ($v - ($errBefore->$ei))
+        :if ($d > 0) do={ :set errS ($errS . " " . $k . " +" . $d) }
+        :set ei ($ei + 1)
+    }
+    :if ([:len $errS] > 0) do={
+        :set errS ($wanIf . ":" . $errS)
+        :set aLog ($aLog, ("rfc wanif-errors " . $errS))
+    } else={
+        :set errS ($wanIf . " clean")
+    }
 }
 
 :put ""
@@ -319,4 +404,7 @@
 }
 :put "  Loss is counted coming back. Outbound is only checked for big loss"
 :put "  (under $minArrivedPct% arriving). To judge outbound at the SLA, run from $targetIP."
+:if ([:len $mtuS] > 0) do={ :put ("  Path MTU : $mtuS") }
+:put ("  WAN errors: $errS")
 :put "==========================================================================="
+:foreach l in=$aLog do={ :log info $l }
