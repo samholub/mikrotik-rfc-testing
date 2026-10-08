@@ -186,7 +186,9 @@
 :local aB [:toarray ""]
 :local aC [:toarray ""]
 :local aV [:toarray ""]
-:local aLt [:toarray ""]
+:local aLn [:toarray ""]
+:local aLa [:toarray ""]
+:local aLx [:toarray ""]
 # Trial and MTU log lines are batched and flushed at the end, so every run's
 # records land in the log together.
 :local aLog [:toarray ""]
@@ -301,12 +303,13 @@
     :if (($vd = "FAIL") && ($cpuMax >= $cpuLimit)) do={ :set vd "INCONCLUSIVE" }
 
     :local latS "no replies"
-    :local latCol "-"
+    :local latMinD "-"
+    :local latAvgD "-"
+    :local latMaxD "-"
     :if ($latN > 0) do={
-        :local latMinD [$fmt v=($latMin / 10) dec=2]
-        :local latAvgD [$fmt v=(($latSum / $latN) / 10) dec=2]
-        :local latMaxD [$fmt v=($latMax / 10) dec=2]
-        :set latCol ($latMinD . "/" . $latAvgD . "/" . $latMaxD)
+        :set latMinD [$fmt v=($latMin / 10) dec=2]
+        :set latAvgD [$fmt v=(($latSum / $latN) / 10) dec=2]
+        :set latMaxD [$fmt v=($latMax / 10) dec=2]
         :set latS ($latMinD . " min, " . $latAvgD . " avg, " . $latMaxD . " max ms")
     }
     :put ""
@@ -343,7 +346,9 @@
     :set aB ($aB, $backPct)
     :set aC ($aC, $cpuMax)
     :set aV ($aV, $vd)
-    :set aLt ($aLt, $latCol)
+    :set aLn ($aLn, $latMinD)
+    :set aLa ($aLa, $latAvgD)
+    :set aLx ($aLx, $latMaxD)
     :delay 3s
 }
 
@@ -412,7 +417,7 @@
 :put "==========================================================================="
 :put ("  SUMMARY | $myName -> $targetIP | $circuitSpeedMbps Mbps | $modeName")
 :put "==========================================================================="
-:put ("  " . [$padR v="Frame" w=8] . [$padL v="Lost" w=8] . [$padL v="Sent" w=11] . [$padL v="Loss%" w=8] . [$padL v="Out%" w=6] . [$padL v="Back%" w=7] . [$padL v="CPU%" w=6] . [$padL v="Latency" w=16] . [$padL v="Result" w=14])
+:put ("  " . [$padR v="Frame" w=8] . [$padL v="Lost" w=8] . [$padL v="Sent" w=11] . [$padL v="Loss%" w=8] . [$padL v="Out%" w=6] . [$padL v="Back%" w=7] . [$padL v="CPU%" w=6] . [$padL v="Min" w=6] . [$padL v="Avg" w=6] . [$padL v="Max" w=6] . [$padL v="Result" w=14])
 :local nPass 0
 :local nFail 0
 :local nInc 0
@@ -427,7 +432,7 @@
     }
     :if ($vd = "FAIL") do={ :set nFail ($nFail + 1) }
     :if ($vd = "INCONCLUSIVE") do={ :set nInc ($nInc + 1) }
-    :put ("  " . [$padR v=(($aF->$i) . " B") w=8] . [$padL v=($aL->$i) w=8] . [$padL v=($aS->$i) w=11] . [$padL v=[$fmt v=($aP->$i) dec=2] w=8] . [$padL v=($aW->$i) w=6] . [$padL v=($aB->$i) w=7] . [$padL v=($aC->$i) w=6] . [$padL v=($aLt->$i) w=16] . [$padL v=$vd w=14])
+    :put ("  " . [$padR v=(($aF->$i) . " B") w=8] . [$padL v=($aL->$i) w=8] . [$padL v=($aS->$i) w=11] . [$padL v=[$fmt v=($aP->$i) dec=2] w=8] . [$padL v=($aW->$i) w=6] . [$padL v=($aB->$i) w=7] . [$padL v=($aC->$i) w=6] . [$padL v=($aLn->$i) w=6] . [$padL v=($aLa->$i) w=6] . [$padL v=($aLx->$i) w=6] . [$padL v=$vd w=14])
 }
 :put "---------------------------------------------------------------------------"
 :if ($nPass > 0) do={

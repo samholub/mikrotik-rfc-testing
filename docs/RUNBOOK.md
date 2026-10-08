@@ -190,8 +190,8 @@ records land together:
 ===========================================================================
   SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | 10 s
 ===========================================================================
-  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%    Latency        Result
-  70 B           0     247491    0.00    99     99    39    0.18/0.23/0.37   PASS
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%    Min    Avg    Max   Result
+  70 B           0     247491    0.00    99     99    39   0.18   0.23   0.37     PASS
   ...
 ---------------------------------------------------------------------------
   PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
@@ -203,9 +203,9 @@ records land together:
 ```
 
 `Out%` and `Back%` are the Arrived figures, `CPU%` the highest of the two ends'
-averages and this router's busiest core. `Latency` is round trip under load
-as min/avg/max ms; `-` means no replies. The PASS aggregate covers PASS rows
-only.
+averages and this router's busiest core. `Min`/`Avg`/`Max` are the round
+trip under load in ms; `-` means no replies. The PASS aggregate covers
+PASS rows only.
 
 ## WAN errors
 
