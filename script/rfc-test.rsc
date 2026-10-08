@@ -447,9 +447,15 @@
 :put "  (under $minArrivedPct% arriving). To judge outbound at the SLA, run from $targetIP."
 :if ([:len $mtuS] > 0) do={ :put ("  Path MTU : $mtuS") }
 :if (($mtuVal > 0) && ($mtuVal < $mtuMin)) do={
+    /terminal style error
     :put ("  ! Path MTU under the $mtuMin B floor - check the build")
+    /terminal style none
 }
+:if ($errBad = 1) do={ /terminal style error }
 :put ("  WAN errors: $errS")
-:if ($errBad = 1) do={ :put ("  ! Errors grew on $wanIf during the run - a local fault; fix before blaming the circuit") }
+:if ($errBad = 1) do={
+    :put ("  ! Errors grew on $wanIf during the run - a local fault; fix before blaming the circuit")
+    /terminal style none
+}
 :put "==========================================================================="
 :foreach l in=$aLog do={ :log info $l }
