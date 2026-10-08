@@ -6,11 +6,10 @@
     "Example DC 1"="192.0.2.10";
     "Example DC 2"="198.51.100.10"
 }
-
-
+:local testLengths {10; 60}   ;# Trial seconds per size; each entry is a menu option. ENTER picks the first.
 :local dcToSiteUser "admin"   ;# login when an IP is typed; its password is asked
-:local briefSecs 10
-:local extendedSecs 60
+:local mtuMin 2000            ;# Path MTU under this is flagged in the summary
+
 # btest streams, pinned: pps does not compare across stream counts.
 :local connCount 20
 # SLA in hundredths of a percent: 10 = 0.10%.
@@ -25,6 +24,7 @@
 :local cpuLimit 90
 # Ceiling for the closing MTU probe: the largest ping size tried.
 :local mtuCeil 9216
+
 # -----------------------
 
 :local padL do={
@@ -48,16 +48,23 @@
 
 :put "===== RFC test ====="
 :put ""
-:put "Test length: 1 = Brief ($briefSecs s per size), 2 = Extended ($extendedSecs s per size)"
-:local modeRaw [/terminal/ask prompt="Length (1 or 2, ENTER for Brief): "]
-:local testSecs $briefSecs
-:local modeName "Brief"
-:if ($modeRaw = "2") do={
-    :set testSecs $extendedSecs
-    :set modeName "Extended"
-} else={
-    :if (([:len $modeRaw] > 0) && ($modeRaw != "1")) do={ :put "Not 1 or 2: $modeRaw. Exiting."; :error "Invalid length" }
+:put "Test length: seconds per frame size"
+:local idx 1
+:foreach s in=$testLengths do={
+    :put "  $idx. $s s"
+    :set idx ($idx + 1)
 }
+:local modeRaw [/terminal/ask prompt="Length (1-$($idx - 1), ENTER for 1): "]
+:local testSecs ($testLengths->0)
+:if ([:len $modeRaw] > 0) do={
+    :local pick [:tonum $modeRaw]
+    :if (([:typeof $pick] != "num") || ($pick < 1) || ($pick > [:len $testLengths])) do={
+        :put "No length $modeRaw on the list - pick 1 to $[:len $testLengths]. Exiting."
+        :error "Invalid length"
+    }
+    :set testSecs ($testLengths->($pick - 1))
+}
+:local modeName "$testSecs s"
 :local testDuration [:totime $testSecs]
 
 :put ""
@@ -127,25 +134,43 @@
 :local qList [:toarray ""]
 :foreach e in=[/interface/ethernet/find] do={ :set qList ($qList, [/interface/find name=[/interface/ethernet/get $e name]]) }
 
-# Error counters on the port the active default route leaves on (immediate-gw
-# reads "port%gateway"), read before the trials and again at the end; any
-# growth during the run is reported in the summary.
+# Error counters on the port the active default route leaves on, read before
+# the trials and again at the end; any growth during the run is reported in
+# the summary. Resolution: the connect route covering the default gateway
+# names the subnet; the /ip/address row on that network names the interface
+# the IP is configured on.
 :local errKeys {"rx-error"; "tx-error"; "rx-drop"; "tx-drop"}
 :local wanIf ""
 :local errBefore [:toarray ""]
-:local rId [/ip/route/find where dst-address="0.0.0.0/0" active]
-:if ([:len $rId] > 0) do={
-    :local igw [:tostr [/ip/route/get ($rId->0) immediate-gw]]
-    :local cut [:find $igw "%"]
-    :if ([:typeof $cut] = "num") do={ :set igw [:pick $igw 0 $cut] }
-    :if ([:len [/interface/find name=$igw]] > 0) do={
-        :set wanIf $igw
-        :local row ([/interface/print as-value where name=$wanIf]->0)
-        :foreach k in=$errKeys do={
-            :local v ($row->$k)
-            :if ([:typeof $v] = "nothing") do={ :set v 0 }
-            :set errBefore ($errBefore, $v)
+:foreach r in=[/ip/route/print as-value where dst-address=0.0.0.0/0] do={
+    :if ((($r->"active") = true) && ($wanIf = "")) do={
+        :local gwIp ($r->"gateway")
+        # "in" needs a real ip-prefix: the connect route's dst-address is one.
+        # But its gateway is the resolved egress (a bridge) - so use the route
+        # only to name the subnet, then take the interface the matching
+        # /ip/address row is configured on.
+        :if ([:typeof $gwIp] = "ip") do={
+            :local netStr ""
+            :foreach cr in=[/ip/route/print as-value where connect active] do={
+                :if (($netStr = "") && ($gwIp in ($cr->"dst-address"))) do={
+                    :local p [:tostr ($cr->"dst-address")]
+                    :set netStr [:pick $p 0 [:find $p "/"]]
+                }
+            }
+            :foreach a in=[/ip/address/print as-value] do={
+                :if (($wanIf = "") && ([:tostr ($a->"network")] = $netStr)) do={
+                    :set wanIf [:tostr ($a->"interface")]
+                }
+            }
         }
+    }
+}
+:if (($wanIf != "") && ([:len [/interface/find name=$wanIf]] > 0)) do={
+    :local row ([/interface/print as-value where name=$wanIf]->0)
+    :foreach k in=$errKeys do={
+        :local v ($row->$k)
+        :if ([:typeof $v] = "nothing") do={ :set v 0 }
+        :set errBefore ($errBefore, $v)
     }
 }
 
@@ -161,6 +186,7 @@
 :local aB [:toarray ""]
 :local aC [:toarray ""]
 :local aV [:toarray ""]
+:local aLt [:toarray ""]
 # Trial and MTU log lines are batched and flushed at the end, so every run's
 # records land in the log together.
 :local aLog [:toarray ""]
@@ -186,6 +212,7 @@
     :local maxRemoteCpu 0
     :local maxCore 0
     :local connSeen 0
+    :local latMin 0
     :local latMax 0
     :local latSum 0
     :local latN 0
@@ -212,14 +239,16 @@
         # btest's CPU figures are all-core averages; one pinned core hides in them.
         :foreach c in=[/system/resource/cpu/print as-value] do={ :if (($c->"load") > $maxCore) do={ :set maxCore ($c->"load") } }
         :set connSeen $"connection-count"
-        # Latency under load, one ping per callback.
-        :local pv [/ping $targetIP count=1 as-value]
-        :local pt [:tostr ($pv->"time")]
-        :if ([:len $pt] > 14) do={
-            :local us ([:tonum [:pick $pt 6 8]] * 1000000 + [:tonum [:pick $pt 9 15]])
-            :set latN ($latN + 1)
-            :set latSum ($latSum + $us)
-            :if ($us > $latMax) do={ :set latMax $us }
+        # Latency under load: five pings 200 ms apart, same ~1 s window.
+        :foreach pv in=[/ping $targetIP count=5 interval=00:00:00.2 as-value] do={
+            :local pt [:tostr ($pv->"time")]
+            :if ([:len $pt] > 14) do={
+                :local us ([:tonum [:pick $pt 6 8]] * 1000000 + [:tonum [:pick $pt 9 15]])
+                :set latN ($latN + 1)
+                :set latSum ($latSum + $us)
+                :if (($latN = 1) || ($us < $latMin)) do={ :set latMin $us }
+                :if ($us > $latMax) do={ :set latMax $us }
+            }
         }
     }
     /system script environment remove targetBps
@@ -272,7 +301,14 @@
     :if (($vd = "FAIL") && ($cpuMax >= $cpuLimit)) do={ :set vd "INCONCLUSIVE" }
 
     :local latS "no replies"
-    :if ($latN > 0) do={ :set latS ([$fmt v=(($latSum / $latN) / 10) dec=2] . " avg, " . [$fmt v=($latMax / 10) dec=2] . " max ms") }
+    :local latCol "-"
+    :if ($latN > 0) do={
+        :local latMinD [$fmt v=($latMin / 10) dec=2]
+        :local latAvgD [$fmt v=(($latSum / $latN) / 10) dec=2]
+        :local latMaxD [$fmt v=($latMax / 10) dec=2]
+        :set latCol ($latMinD . "/" . $latAvgD . "/" . $latMaxD)
+        :set latS ($latMinD . " min, " . $latAvgD . " avg, " . $latMaxD . " max ms")
+    }
     :put ""
     :put ("--- $frame B frame | $circuitSpeedMbps Mbps | $modeName ---")
     :put ("  Test    : $myName -> $targetIP")
@@ -307,6 +343,7 @@
     :set aB ($aB, $backPct)
     :set aC ($aC, $cpuMax)
     :set aV ($aV, $vd)
+    :set aLt ($aLt, $latCol)
     :delay 3s
 }
 
@@ -320,6 +357,7 @@
 # A partial size list is a diagnostic rerun, not an acceptance test, so the
 # probe is skipped there.
 :local mtuS ""
+:local mtuVal 0
 :if ([:len $selectedSizes] = [:len $packetSizes]) do={
     :local mtuFloor 1200
     :if ([/ping $targetIP count=1 size=1500 do-not-fragment interval=00:00:00.2] = 0 && \
@@ -341,13 +379,15 @@
         } else={
             :set mtuS "$lo B"
         }
+        :set mtuVal $lo
         :set aLog ($aLog, ("rfc mtu=$lo target=$targetIP"))
     }
 }
 
 # Deltas on the WAN port's error counters over the whole run.
 :local errS ""
-:if ($wanIf = "") do={
+:local errBad 0
+:if ([:len $errBefore] = 0) do={
     :set errS "not checked - no default route"
 } else={
     :local row ([/interface/print as-value where name=$wanIf]->0)
@@ -360,6 +400,7 @@
         :set ei ($ei + 1)
     }
     :if ([:len $errS] > 0) do={
+        :set errBad 1
         :set errS ($wanIf . ":" . $errS)
         :set aLog ($aLog, ("rfc wanif-errors " . $errS))
     } else={
@@ -371,7 +412,7 @@
 :put "==========================================================================="
 :put ("  SUMMARY | $myName -> $targetIP | $circuitSpeedMbps Mbps | $modeName")
 :put "==========================================================================="
-:put ("  " . [$padR v="Frame" w=8] . [$padL v="Lost" w=8] . [$padL v="Sent" w=11] . [$padL v="Loss%" w=8] . [$padL v="Out%" w=6] . [$padL v="Back%" w=7] . [$padL v="CPU%" w=6] . [$padL v="Result" w=14])
+:put ("  " . [$padR v="Frame" w=8] . [$padL v="Lost" w=8] . [$padL v="Sent" w=11] . [$padL v="Loss%" w=8] . [$padL v="Out%" w=6] . [$padL v="Back%" w=7] . [$padL v="CPU%" w=6] . [$padL v="Latency" w=16] . [$padL v="Result" w=14])
 :local nPass 0
 :local nFail 0
 :local nInc 0
@@ -386,7 +427,7 @@
     }
     :if ($vd = "FAIL") do={ :set nFail ($nFail + 1) }
     :if ($vd = "INCONCLUSIVE") do={ :set nInc ($nInc + 1) }
-    :put ("  " . [$padR v=(($aF->$i) . " B") w=8] . [$padL v=($aL->$i) w=8] . [$padL v=($aS->$i) w=11] . [$padL v=[$fmt v=($aP->$i) dec=2] w=8] . [$padL v=($aW->$i) w=6] . [$padL v=($aB->$i) w=7] . [$padL v=($aC->$i) w=6] . [$padL v=$vd w=14])
+    :put ("  " . [$padR v=(($aF->$i) . " B") w=8] . [$padL v=($aL->$i) w=8] . [$padL v=($aS->$i) w=11] . [$padL v=[$fmt v=($aP->$i) dec=2] w=8] . [$padL v=($aW->$i) w=6] . [$padL v=($aB->$i) w=7] . [$padL v=($aC->$i) w=6] . [$padL v=($aLt->$i) w=16] . [$padL v=$vd w=14])
 }
 :put "---------------------------------------------------------------------------"
 :if ($nPass > 0) do={
@@ -405,6 +446,10 @@
 :put "  Loss is counted coming back. Outbound is only checked for big loss"
 :put "  (under $minArrivedPct% arriving). To judge outbound at the SLA, run from $targetIP."
 :if ([:len $mtuS] > 0) do={ :put ("  Path MTU : $mtuS") }
+:if (($mtuVal > 0) && ($mtuVal < $mtuMin)) do={
+    :put ("  ! Path MTU under the $mtuMin B floor - check the build")
+}
 :put ("  WAN errors: $errS")
+:if ($errBad = 1) do={ :put ("  ! Errors grew on $wanIf during the run - a local fault; fix before blaming the circuit") }
 :put "==========================================================================="
 :foreach l in=$aLog do={ :log info $l }

@@ -2,12 +2,14 @@
 
 ## The script
 
-One script, `rfc-test.rsc`, RouterOS 7 only. It asks for a length first:
+One script, `rfc-test.rsc`, RouterOS 7 only. It asks for a length first. The
+choices come from the `testLengths` array at the top of the script - one menu
+entry per element, edit it to add or change trial lengths:
 
-| Length | Trial per size | Runtime, all 6 sizes | Use when |
+| Default entry | Trial per size | Runtime, all 6 sizes | Use when |
 |---|---|---|---|
-| **Brief** | 10 s | ~1.5 min | Standard turn-up check. Start here. |
-| **Extended** | 60 s | ~6.5 min | Customer deliverable, or confirming something Brief showed. |
+| 1 (default) | 10 s | ~1.5 min | Standard turn-up check. Start here. |
+| 2 | 60 s | ~6.5 min | Customer deliverable, or confirming something the short run showed. |
 
 Both test the same six Ethernet frame sizes: 70, 128, 256, 512, 1024 and
 1500 B. (A true 64 B frame is not possible with btest; 70 B is its floor.)
@@ -22,7 +24,7 @@ configuration.
 
 Four prompts, plus a password if you type an address:
 
-1. **Length** - 1 for Brief, 2 for Extended. ENTER is Brief.
+1. **Length** - pick a `testLengths` entry by number. ENTER is the first.
 2. **Speed (Mbps)** - the circuit's line rate, digits only. Anything else
    stops the run rather than becoming an unthrottled test.
 3. **Server** - pick a DC by number, or type an IP address. Typing an address
@@ -54,13 +56,13 @@ chat.** Result blocks are safe to paste.
 Brief, 70 B, bench RB4011 -> RB4011, 2026-10-02 (`results/btest-bench/bench-rb4011-20261002-cpu-core-rule.txt`):
 
 ```
---- 70 B frame | 20 Mbps | Brief ---
+--- 70 B frame | 20 Mbps | 10 s ---
   Test    : BENCH-NEW -> 192.168.78.2
   Arrived : far end got 99% | 99% came back
   Rate    : 19.775 Mbps out | 19.602 Mbps back (L1)
   Lost    : 0 of 247491 coming back (0.00%), SLA 0.10%
   CPU     : this router 31% (busiest core 39%) | far end 32%
-  Latency : 0.23 avg, 0.37 max ms
+  Latency : 0.18 min, 0.23 avg, 0.37 max ms
   Note    : loss is counted coming back; outbound only for big loss
   Result  : PASS
 ```
@@ -98,10 +100,11 @@ core is read directly; the far end's is not available, so a low far-end figure
 does not prove the far end kept up. At 90% or more on any of the three, a router can
 lose packets itself, which is why a FAIL there becomes INCONCLUSIVE.
 
-**Latency** - round trip under load, one ping a second during the trial. It
-includes queueing in this router behind the test traffic, so a high figure
-shows a bottleneck exists, not where it is. The max is one sample; do not
-quote it to a carrier as jitter.
+**Latency** - round trip under load: five pings 200 ms apart, each second of
+the trial. It includes queueing in this router behind the test traffic, so a
+high figure shows a bottleneck exists, not where it is. The min is the
+cleanest round trip seen; the max is one sample - do not quote it to a
+carrier as jitter.
 
 **Note** - the one limit of a single run, below.
 
@@ -185,10 +188,10 @@ records land together:
 
 ```
 ===========================================================================
-  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | Brief
+  SUMMARY | BENCH-NEW -> 192.168.78.2 | 20 Mbps | 10 s
 ===========================================================================
-  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%        Result
-  70 B           0     247491    0.00    99     99    39          PASS
+  Frame       Lost       Sent   Loss%  Out%  Back%  CPU%    Latency        Result
+  70 B           0     247491    0.00    99     99    39    0.18/0.23/0.37   PASS
   ...
 ---------------------------------------------------------------------------
   PASS: 6 size(s), 0 lost of 556542 = 0.00% (SLA 0.10%)
@@ -200,13 +203,15 @@ records land together:
 ```
 
 `Out%` and `Back%` are the Arrived figures, `CPU%` the highest of the two ends'
-averages and this router's busiest core.
-The PASS aggregate covers PASS rows only.
+averages and this router's busiest core. `Latency` is round trip under load
+as min/avg/max ms; `-` means no replies. The PASS aggregate covers PASS rows
+only.
 
 ## WAN errors
 
-The script resolves the port the active default route leaves on (the
-`immediate-gw` interface of `0.0.0.0/0`) and snapshots its `rx-error`,
+The script resolves the port the active default route leaves on - the
+connected route covering the gateway names the subnet, and the interface
+holding the matching `/ip/address` is the port - and snapshots its `rx-error`,
 `tx-error`, `rx-drop` and `tx-drop` counters before the trials, then again
 after the last one. `WAN errors` in the summary reports what grew:
 
@@ -215,11 +220,18 @@ after the last one. `WAN errors` in the summary reports what grew:
   WAN errors: ether1: rx-error +4 rx-drop +12
 ```
 
-Any growth is frames this router's own uplink mangled during the run - treat
-it like a queue drop on the test port: a local fault to fix before blaming
-the circuit. `not checked - no default route` means the port could not be
-resolved, nothing more. The check runs on every run, partial size lists
-included; it costs two counter reads.
+Any growth is frames this router's own uplink mangled during the run - the
+summary flags it as an error:
+
+```
+  WAN errors: ether1: rx-error +4 rx-drop +12
+  ! Errors grew on ether1 during the run - a local fault; fix before blaming the circuit
+```
+
+Treat it like a queue drop on the test port: a local fault to fix before
+blaming the circuit. `not checked - no default route` means the port could
+not be resolved, nothing more. The check runs on every run, partial size
+lists included; it costs two counter reads.
 
 ## Max MTU
 
@@ -242,6 +254,13 @@ on the way, or the far end, not necessarily the circuit. Ping's
 fragmented, so on a path with a smaller return leg the figure reads high. If
 the far end answers no pings at all, the check reports itself unmeasurable -
 that is ICMP filtering, and the btest results above it still stand.
+
+A measured MTU under `mtuMin` (2000 B by default) is flagged in the summary:
+
+```
+  Path MTU : 1500 B
+  ! Path MTU under the 2000 B floor - check the build
+```
 
 ## Interpreting - in this order
 

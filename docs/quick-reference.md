@@ -10,7 +10,7 @@ The acceptance test ([`rfc-test.rsc`](../script/rfc-test.rsc), explained line by
 
 - **Traffic:** UDP, both directions at once, 20 streams, at the circuit speed you enter, paced so the on-wire rate (layer 1) stays at 99% of it.
 - **Frame sizes:** true Ethernet frames of 70, 128, 256, 512, 1024 and 1500 B.
-- **Trial length:** 10 s per size (Brief) or 60 s (Extended).
+- **Trial length:** 10 s or 60 s per size by default; the menu is the `testLengths` array in the script, so entries can be added or changed.
 - **Per size it reports:** the share of packets that arrived each way, packets lost on the return path against the SLA (0.10%), CPU at both ends, latency under load, and drops in this router's own queues.
 - **At the end:** a `do-not-fragment` ping binary-search reports the largest IP packet that crosses the path - the path MTU, up to 9216 B.
 
